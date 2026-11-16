@@ -33,14 +33,17 @@ Parameters:
     Type: Number
     Default: 5
     Description: Alert when usage (before credits) passes 20% and 100% of this amount.
+  # The server is ARM (AWS Graviton). The app image is built for linux/arm64 in CI,
+  # so only ARM instance types and the ARM Ubuntu image fit together here.
   InstanceType:
     Type: String
-    Default: t3.micro
-    AllowedValues: [t3.micro, t2.micro, t3.small]
+    Default: t4g.micro
+    AllowedValues: [t4g.micro, t4g.small]
+    Description: t4g.micro has 1 GB memory, t4g.small 2 GB. Both are ARM (Graviton).
   UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
-    Description: Latest Ubuntu 24.04 LTS image, looked up automatically.
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
+    Description: Latest Ubuntu 24.04 LTS image for ARM (arm64), looked up automatically.
 
 Conditions:
   CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, "true"]
@@ -188,7 +191,7 @@ Resources:
             install -m 0755 -d /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
             chmod a+r /etc/apt/keyrings/docker.asc
-            echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
             apt-get update
             apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
             echo '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}' > /etc/docker/daemon.json

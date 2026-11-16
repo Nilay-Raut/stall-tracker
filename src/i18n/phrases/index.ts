@@ -1,5 +1,6 @@
 import type { Phrases } from "../translate";
 import { add } from "./add";
+import { analysis } from "./analysis";
 import { auth } from "./auth";
 import { calendar } from "./calendar";
 import { close } from "./close";
@@ -27,4 +28,5 @@ export const PHRASES: Phrases[] = [
   items,
   auth,
   errors,
+  analysis,
 ];

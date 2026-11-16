@@ -57,8 +57,12 @@ jobs:
   deploy:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The server is ARM, so the image is built for linux/arm64. On the normal x86
+    # runner that goes through QEMU emulation (slower). If your GitHub plan has ARM
+    # runners, set the repository variable BUILD_RUNNER to ubuntu-24.04-arm for a
+    # native, much faster build.
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 45
     environment: production
     permissions:
       contents: read
@@ -75,12 +79,18 @@ jobs:
 
       - uses: aws-actions/amazon-ecr-login@v2
 
+      # Lets an x86 runner build ARM images. Does nothing useful on an ARM runner, but is harmless.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push the image
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/arm64
           push: true
           tags: ${{ env.IMAGE }}
           cache-from: type=gha

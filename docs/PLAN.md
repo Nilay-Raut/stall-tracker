@@ -222,7 +222,7 @@ Clean-code rules, kept light:
 Phone (PWA) --HTTPS--> CloudFront (free https address, no caching of pages or API)
                           │ only CloudFront can reach the server
                           ▼
-                       EC2 t3.micro (Ubuntu, 2 GB swap)
+                       EC2 t4g.micro, ARM (Ubuntu, 2 GB swap)
                         ├─ Caddy       : reverse proxy
                         ├─ Next.js     : standalone build in Docker
                         └─ PostgreSQL  : Docker volume on the EBS disk
@@ -293,6 +293,27 @@ Hindi and Marathi text, Indian number format everywhere. Security headers, final
 Also a memory check on a low-end Android phone: long session with many entries, no growth in memory, no slow keypad.
 Done when: the checklist in section 6 is fully ticked and a restore has been tested.
 Status (16 Nov 2026): built. Every screen in English, Hindi and Marathi (src/i18n; translations need a native speaker's review); Content-Security-Policy; error screens and one-line JSON error logs with a code shown to the owner; restore drill done (dump restored into a fresh Postgres 17 and over existing data, all row counts equal); axe-core WCAG 2.1 AA check of every screen in the e2e suite (no violations); long-session check (e2e/memory.spec.ts, MEMORY_CHECK=1): screen changes stay flat, 80 entries add about 2 MB. Still to do by hand: a full Lighthouse run and the keypad on a real low-end Android phone, and one restore from S3 on the real server.
+
+**Phase 11 — Deeper reports (asked for after Phase 10)**
+All from data already stored; no database change.
+a. _Where every ₹100 went_: one bar splitting the period's sales into each expense category, fixed costs and profit (or the loss), with "₹38 of every ₹100 went on raw material". Shares are rounded so they add up to exactly 100.
+b. _Compared with before_: sales, expenses and profit against the same number of days just before (Month compares 1–16 Nov with 1–16 Oct, so a half month is not set against a full one), with ▲▼ and %.
+c. _Month by month_: a screen with the last 12 months (from when the shop started): profit bars and a row per month with sales, costs and profit.
+d. _Tap a spending category_: the entries behind it for the period; Raw material also grouped by supplier and by material.
+e. _Owner's take_: cash taken out compared with profit, with a note when more was taken than earned.
+f. _Share the numbers_: CSV downloads (one row per day; one row per entry) shared straight to WhatsApp where the phone supports it, and a print layout so "Save as PDF" gives a clean page. CSV text cells are guarded against spreadsheet formulas.
+Done when: the ₹100 split adds up to 100 and to the profit card; the comparison matches two Reports runs by hand; the CSV totals equal the screen.
+Status (16 Nov 2026): built. Reports has the ₹100 split inside "Where the money goes" (rows open the spending details), "Compared with before" and "Your take"; new screens Month by month, Spending details, Share or download (CSV share/download) and a print page. Covered by unit tests and e2e/analysis.spec.ts.
+
+**Phase 12 — UPI payments added by themselves (PhonePe)**
+Personal UPI apps have no way for other apps to read payments. PhonePe offers it for merchants as _Integrated Static QR_: PhonePe calls our server within seconds of each payment to the shop's QR. It has to be switched on for the owner's merchant account by PhonePe (ask PhonePe Business support / the integration team for "Integrated Static QR with S2S callback"; they give a Merchant ID, salt key and salt index).
+
+- Settings > UPI from PhonePe: owner pastes the Merchant ID and salt key; stored encrypted with a server key. The app shows the callback address to give PhonePe (one secret address per shop).
+- Each successful payment becomes a UPI sale marked "PhonePe", once only (PhonePe's transaction ID is unique), checked with PhonePe's X-VERIFY signature and amount; failures and anything unsigned are refused. The phone gets it with the next sync, offline-safe.
+- The owner can change or delete it like any entry, or mark it "not a sale" (refund, personal transfer). Typed UPI sales keep working; a hint warns when a typed UPI sale may double a PhonePe one.
+- Day close fills UPI from these and the owner adjusts.
+- Fallback for days the callback missed: import PhonePe's transaction report (needs a sample file from the owner to match the format).
+  Done when: signed test callbacks (and repeats) create exactly one entry each, unsigned ones none; and one real payment shows up on Today within a minute.
 
 ---
 

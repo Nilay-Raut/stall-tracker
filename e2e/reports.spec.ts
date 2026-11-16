@@ -147,7 +147,8 @@ test("reports add up the period with fixed costs for every day", async ({ page }
   ).toBeVisible();
 
   await expect(screen(page).getByRole("heading", { name: "Where the money goes" })).toBeVisible();
-  await expect(screen(page).locator("div", { hasText: /^Raw material₹500$/ })).toBeVisible();
+  // The row is tappable (opens the spending details), hence the "›".
+  await expect(screen(page).locator("div", { hasText: /^Raw material ›₹500$/ })).toBeVisible();
   await expect(screen(page).getByText("Cash ₹5,000")).toBeVisible();
   await expect(screen(page).getByText("UPI ₹1,000")).toBeVisible();
   await expect(screen(page).getByText("50 plates · ₹36 profit each")).toBeVisible();

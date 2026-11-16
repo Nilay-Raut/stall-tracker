@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lte, min, sql } from "drizzle-orm";
 import { fixedCostPerDay, monthlyFixedTotal } from "@/domain/fixedCosts";
 import { type PurchaseRecord, priceSummary } from "@/domain/prices";
 import type {
@@ -11,7 +11,10 @@ import type {
 } from "@/domain/report";
 import { fromMilli } from "@/domain/materials";
 import { formatMonthName } from "@/lib/calendar";
-import { type BusinessDate, type Lang, daysInMonth, shiftDate } from "@/lib/dates";
+import { type BusinessDate, type Lang, businessDate, daysInMonth, shiftDate } from "@/lib/dates";
+import { type MonthTotals, byMonth } from "@/domain/analysis";
+import type { ExpenseCategory, PaidFrom, PaymentMode } from "@/domain/entry";
+import { shiftMonth } from "@/lib/calendar";
 import { type Range, datesBetween } from "@/lib/ranges";
 import { getDb } from "@/server/db/client";
 import {
@@ -55,6 +58,7 @@ export async function reportDays(shopId: string, from: string, to: string): Prom
         upiSales: 0,
         expenses: 0,
         fixedCost: fixedCostPerDay(monthly, daysInMonth(date)),
+        cashOut: 0,
       };
     }
     return {
@@ -65,6 +69,7 @@ export async function reportDays(shopId: string, from: string, to: string): Prom
       upiSales: row.upiSales,
       expenses: row.expenseTotal,
       fixedCost: row.fixedCost,
+      cashOut: row.cashOutTotal,
     };
   });
 }
@@ -203,6 +208,136 @@ export async function getReportInput(
     previous: previousSales > 0 ? { sales: previousSales, categories: previousCategories } : null,
     materialRise: rise,
   };
+}
+
+// ---------- Phase 11: comparison, month by month, spending details, export ----------
+
+/**
+ * The days to compare the range with, or null when the shop has no recorded day in
+ * them (a comparison with only fixed costs would mislead).
+ */
+export async function compareDays(shopId: string, range: Range): Promise<ReportDay[] | null> {
+  const list = await reportDays(shopId, range.compareFrom, range.compareTo);
+  return list.some((d) => d.status !== "none") ? list : null;
+}
+
+/** The first day the shop has figures for (or the day it was set up). */
+async function shopStart(shopId: string, createdAt: Date): Promise<BusinessDate> {
+  const [row] = await getDb()
+    .select({ first: min(days.businessDate) })
+    .from(days)
+    .where(eq(days.shopId, shopId));
+  const created = businessDate(createdAt);
+  return row?.first && row.first < created ? row.first : created;
+}
+
+/** Up to the last 12 months (this one so far), from when the shop started. Oldest first. */
+export async function monthTrend(
+  shop: { id: string; createdAt: Date },
+  today: BusinessDate,
+): Promise<MonthTotals[]> {
+  const twelveBack = `${shiftMonth(today.slice(0, 7), -11)}-01`;
+  const start = await shopStart(shop.id, shop.createdAt);
+  return byMonth(await reportDays(shop.id, start > twelveBack ? start : twelveBack, today));
+}
+
+export type SpendEntry = {
+  id: string;
+  date: BusinessDate;
+  amount: number;
+  paidFrom: PaidFrom | null;
+  material: string | null;
+  supplier: string | null;
+  quantity: number | null;
+  unit: string | null;
+};
+
+/** The expenses of one category in the range, newest first (at most 500). */
+export async function spendEntries(
+  shopId: string,
+  category: ExpenseCategory,
+  from: BusinessDate,
+  to: BusinessDate,
+): Promise<SpendEntry[]> {
+  const rows = await getDb()
+    .select({
+      id: entries.id,
+      date: entries.businessDate,
+      amount: entries.amount,
+      paidFrom: entries.paidFrom,
+      material: materials.name,
+      supplier: suppliers.name,
+      quantityMilli: purchases.quantityMilli,
+      unit: purchases.unit,
+    })
+    .from(entries)
+    .leftJoin(purchases, eq(purchases.entryId, entries.id))
+    .leftJoin(materials, eq(materials.id, purchases.materialId))
+    .leftJoin(suppliers, eq(suppliers.id, purchases.supplierId))
+    .where(
+      and(
+        eq(entries.shopId, shopId),
+        eq(entries.type, "expense"),
+        eq(entries.category, category),
+        isNull(entries.deletedAt),
+        gte(entries.businessDate, from),
+        lte(entries.businessDate, to),
+      ),
+    )
+    .orderBy(desc(entries.businessDate), desc(entries.occurredAt))
+    .limit(500);
+  return rows.map(({ quantityMilli, ...r }) => ({
+    ...r,
+    quantity: quantityMilli === null ? null : fromMilli(quantityMilli),
+  }));
+}
+
+export type ExportEntry = SpendEntry & {
+  time: Date;
+  type: "sale" | "expense" | "cash_out";
+  paymentMode: PaymentMode | null;
+  category: ExpenseCategory | null;
+};
+
+/** Every entry of the range for the CSV download, oldest first (at most 20,000). */
+export async function exportEntries(
+  shopId: string,
+  from: BusinessDate,
+  to: BusinessDate,
+): Promise<ExportEntry[]> {
+  const rows = await getDb()
+    .select({
+      id: entries.id,
+      date: entries.businessDate,
+      time: entries.occurredAt,
+      type: entries.type,
+      amount: entries.amount,
+      paymentMode: entries.paymentMode,
+      category: entries.category,
+      paidFrom: entries.paidFrom,
+      material: materials.name,
+      supplier: suppliers.name,
+      quantityMilli: purchases.quantityMilli,
+      unit: purchases.unit,
+    })
+    .from(entries)
+    .leftJoin(purchases, eq(purchases.entryId, entries.id))
+    .leftJoin(materials, eq(materials.id, purchases.materialId))
+    .leftJoin(suppliers, eq(suppliers.id, purchases.supplierId))
+    .where(
+      and(
+        eq(entries.shopId, shopId),
+        isNull(entries.deletedAt),
+        gte(entries.businessDate, from),
+        lte(entries.businessDate, to),
+      ),
+    )
+    .orderBy(asc(entries.businessDate), asc(entries.occurredAt))
+    .limit(20_000);
+  return rows.map(({ quantityMilli, ...r }) => ({
+    ...r,
+    quantity: quantityMilli === null ? null : fromMilli(quantityMilli),
+  }));
 }
 
 // ---------- Supplier prices ----------

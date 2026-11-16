@@ -8,7 +8,7 @@ One-time setup takes about 45 minutes, most of it waiting. After that, every pus
 Phone ──HTTPS──> CloudFront (free https://dxxxx.cloudfront.net address)
                     │  adds a secret header; only CloudFront can reach the server
                     ▼
-                 EC2 t3.micro, Ubuntu 24.04, 2 GB swap
+                 EC2 t4g.micro (ARM), Ubuntu 24.04, 2 GB swap
                     ├─ Caddy       checks the secret header, forwards to the app
                     ├─ Next.js app the Docker image built by GitHub Actions
                     └─ PostgreSQL  data on the encrypted disk
@@ -16,8 +16,10 @@ Phone ──HTTPS──> CloudFront (free https://dxxxx.cloudfront.net address)
                           ▼
                        S3 bucket (encrypted backups, kept 30 days)
 
-GitHub Actions: tests ─> build image ─> ECR ─> tells the server to deploy (via SSM)
+GitHub Actions: tests ─> build ARM image ─> ECR ─> tells the server to deploy (via SSM)
 ```
+
+The server is **ARM** (AWS Graviton). ARM servers cost about 20% less than Intel/AMD ones of the same size. The app image is built for `linux/arm64` in GitHub Actions, and the stack only allows ARM server sizes (`t4g.micro`, `t4g.small`) with the ARM Ubuntu image, so the pieces always match. Postgres, Caddy and Node all have official ARM images.
 
 Everything in AWS is created by one CloudFormation template, [deploy/aws/stack.yml](../deploy/aws/stack.yml). Deleting the stack removes it all again, except the backup bucket, which is kept on purpose.
 
@@ -25,14 +27,16 @@ Everything in AWS is created by one CloudFormation template, [deploy/aws/stack.y
 
 Prices for Mumbai (ap-south-1), roughly, per month:
 
-| Item                          | Cost     | Notes                                                       |
-| ----------------------------- | -------- | ----------------------------------------------------------- |
-| EC2 t3.micro, always on       | ~$8.20   | Covered by credits or the free tier while they last         |
-| Public IPv4 address           | ~$3.65   | AWS charges for every public IPv4 address                   |
-| 12 GB encrypted disk (gp3)    | ~$1.10   |                                                             |
-| ECR, S3 backups, SSM, budgets | < $0.20  | Last 5 images and 30 days of small backups                  |
-| CloudFront                    | $0       | Always-free allowance: 1 TB and 10 million requests a month |
-| **Total**                     | **~$13** | Paid from credits first                                     |
+| Item                           | Cost     | Notes                                                       |
+| ------------------------------ | -------- | ----------------------------------------------------------- |
+| EC2 t4g.micro (ARM), always on | ~$6.50   | Covered by credits or the free tier while they last         |
+| Public IPv4 address            | ~$3.65   | AWS charges for every public IPv4 address                   |
+| 12 GB encrypted disk (gp3)     | ~$1.10   |                                                             |
+| ECR, S3 backups, SSM, budgets  | < $0.20  | Last 5 images and 30 days of small backups                  |
+| CloudFront                     | $0       | Always-free allowance: 1 TB and 10 million requests a month |
+| **Total**                      | **~$11** | Paid from credits first                                     |
+
+`t4g.small` (2 GB memory) costs about twice as much as `t4g.micro`. AWS has run a free trial for `t4g.small` (750 hours a month) that ends on 31 December 2026. If your account shows it under **Free tier**, you can pick `t4g.small` until then, and change back to `t4g.micro` afterwards (see "Changing the server size" below).
 
 Check what your account has under **Billing and Cost Management > Free tier** and **Credits**. The template creates a cost alert that emails you when usage passes 20% and 100% of the budget (default $5). It counts usage _before_ credits on purpose, so you hear about spending even while credits are paying.
 
@@ -82,7 +86,8 @@ Keep it somewhere safe for the next step. It is not needed again after that.
    - **CloudFrontPrefixListId**: from step 2
    - **OriginSecret**: from step 3
    - **AlertEmail**: your email
-   - Leave the rest as they are.
+   - **InstanceType**: `t4g.micro` (default), or `t4g.small` for more memory
+   - Leave the rest as they are. **UbuntuAmi** must stay the `arm64` image.
 5. Next, next, tick **"I acknowledge that AWS CloudFormation might create IAM resources"**, then **Submit**.
 
 It takes 5 to 15 minutes (CloudFront is the slow part). When the status is `CREATE_COMPLETE`, open the **Outputs** tab.
@@ -104,6 +109,8 @@ In the GitHub repository:
 
 No AWS keys go into GitHub. GitHub proves which repository and environment it is, and AWS lets only that one deploy.
 
+3. Optional, for faster deploys: if your GitHub plan includes ARM runners, add a sixth variable `BUILD_RUNNER` with the value `ubuntu-24.04-arm`. Without it, GitHub builds the ARM image on a normal Intel/AMD runner through emulation, which works but is several times slower (expect 15 to 30 minutes for the image instead of about 5).
+
 ## Step 6: Check the server finished its setup
 
 The server installs Docker and so on at first boot (about 5 minutes).
@@ -116,7 +123,9 @@ sudo tail -3 /var/log/stall-setup.log     # should end with "Setup finished"
 
 ## Step 7: Deploy
 
-GitHub **Actions > CI and deploy > Run workflow** (or push any commit to `main`). The run tests everything, builds the image, and deploys it. The deploy step prints the server's output.
+GitHub **Actions > CI and deploy > Run workflow** (or push any commit to `main`). The run tests everything, builds the ARM image, and deploys it. The deploy step prints the server's output. Without `BUILD_RUNNER` (step 5), the image build is the slow part; the job is allowed 45 minutes.
+
+If the app container keeps restarting and its log shows `exec format error`, the image was built for the wrong chip. Check that the **Build and push the image** step has `platforms: linux/arm64`.
 
 ## Step 8: Open it
 
@@ -147,6 +156,19 @@ All of these run in a Session Manager window on the server (step 6). Start with 
 
 **Going back to an older version:** in GitHub Actions, open the run of the older commit and choose **Re-run jobs**. Images for the last 5 deploys are kept. Database migrations are not undone, so every migration must keep working with the previous app version (add columns, do not rename or drop them in the same release).
 
+## Changing the server size
+
+Between `t4g.micro` and `t4g.small`: **CloudFormation > stall-tracker > Update > Use current template**, change **InstanceType**, and submit. AWS stops the server, resizes it and starts it again on the same disk, so data stays. The app is offline for a few minutes.
+
+**Moving a stack that was created on an older, Intel/AMD (`t3.micro`) version of this template:** the change to ARM needs a new Ubuntu image, which means a brand new server and a brand new disk. The database on the old disk is lost with it. Do it in this order:
+
+1. On the old server: `cd /opt/stall && sudo bash backup.sh manual` and note the file name it prints.
+2. Update the stack with the new template (`t4g.micro` and the `arm64` UbuntuAmi).
+3. Wait for step 6 (setup finished) on the new server, then run a deploy (step 7). The `INSTANCE_ID` output changes, so update that GitHub variable first.
+4. On the new server: `cd /opt/stall && sudo bash restore.sh <file-name>`.
+
+The backup bucket, CloudFront address and Elastic IP stay the same.
+
 ## Installing on the phone and the closing reminder
 
 - Open the `AppUrl` in Chrome (Android) or Safari (iPhone). Android shows an **Install** button on Today; on iPhone use Share, then **Add to Home Screen**.
@@ -162,6 +184,7 @@ All of these run in a Session Manager window on the server (step 6). Start with 
 - Containers cannot reach the server's AWS credentials (IMDSv2 with hop limit 1).
 - Security updates install automatically, with a reboot at 04:30 India time when needed.
 - GitHub can only push images, upload deploy files and run the deploy command on this one server.
+- `BUILD_RUNNER` only chooses which GitHub machine builds the image; it gives no extra access.
 - Reminder notifications carry no money figures (they show on the lock screen). The reminder job can only be called from inside the server, with a secret.
 - Pages kept on the phone for offline use are deleted at logout.
 

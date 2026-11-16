@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: projectRoot,
   poweredByHeader: false,
+  // Dev server only: let a phone on the home Wi-Fi open it (npm run dev:phone).
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

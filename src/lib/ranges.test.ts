@@ -11,6 +11,15 @@ describe("resolveRange", () => {
       to: "2026-11-13",
       previousFrom: "2026-10-01",
       previousTo: "2026-10-31",
+      compareFrom: "2026-10-01",
+      compareTo: "2026-10-13",
+    });
+  });
+
+  it("month: compares with the same days of last month, even in a shorter month", () => {
+    expect(resolveRange("month", "2027-03-31")).toMatchObject({
+      compareFrom: "2027-02-01",
+      compareTo: "2027-02-28",
     });
   });
 

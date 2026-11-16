@@ -2,17 +2,16 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Loading } from "@/components/feature/reports/Loading";
-import { ReportView, rangeLabel } from "@/components/feature/reports/ReportView";
+import { FullReport } from "@/components/feature/reports/FullReport";
+import { MoreLinks } from "@/components/feature/reports/ReportExtras";
+import { rangeLabel } from "@/components/feature/reports/ReportView";
 import { AsOf } from "@/components/ui/AsOf";
 import { Button } from "@/components/ui/Button";
-import { buildReport } from "@/domain/report";
 import { type Translate, msg, translator } from "@/i18n/translate";
 import { cn } from "@/lib/cn";
 import { businessDate } from "@/lib/dates";
-import { formatRupees } from "@/lib/money";
 import { type Range, resolveRange } from "@/lib/ranges";
 import { requireShop } from "@/server/queries/shop";
-import { getReportInput } from "@/server/reports";
 
 export const metadata = { title: "Reports" };
 
@@ -32,8 +31,6 @@ async function ReportsContent({ searchParams }: Pick<PageProps<"/reports">, "sea
   const today = businessDate();
   const params = await searchParams;
   const range = resolveRange(params.range, today, params.from, params.to);
-  const report = buildReport(await getReportInput(shop.id, range, today, lang), formatRupees, t);
-
   return (
     <>
       <header className="flex min-h-12 items-center justify-between">
@@ -42,7 +39,8 @@ async function ReportsContent({ searchParams }: Pick<PageProps<"/reports">, "sea
       </header>
       <AsOf lang={shop.language} />
       <RangePicker range={range} today={today} t={t} />
-      <ReportView range={range} report={report} lang={lang} t={t} />
+      <FullReport shopId={shop.id} range={range} today={today} lang={lang} />
+      <MoreLinks range={range} t={t} />
     </>
   );
 }

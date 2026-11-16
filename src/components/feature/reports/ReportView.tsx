@@ -1,24 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/Card";
+import { MoneySplit } from "./ReportExtras";
 import type { Report } from "@/domain/report";
 import { type Translate, msg } from "@/i18n/translate";
 import { cn } from "@/lib/cn";
 import { type BusinessDate, type Lang, formatDayLabel } from "@/lib/dates";
-import { CATEGORY_LABELS } from "@/lib/labels";
 import { formatRupees } from "@/lib/money";
 import type { Range } from "@/lib/ranges";
 
-const SAME_AS: Record<Range["kind"], string> = {
-  week: msg("same as the week before"),
-  month: msg("same as last month"),
-  custom: msg("same as the period before"),
-};
-const WAS: Record<Range["kind"], string> = {
-  week: msg("was {share}% the week before"),
-  month: msg("was {share}% last month"),
-  custom: msg("was {share}% the period before"),
-};
 const WEEKDAY_SHORT = [
   msg("Sun"),
   msg("Mon"),
@@ -55,12 +45,19 @@ function offNote(dates: string, count: number, t: Translate): string {
   return count === 1 ? t("{dates} was closed.", { dates }) : t("{dates} were closed.", { dates });
 }
 
-type Props = { range: Range; report: Report; lang: Lang; t: Translate };
+type Props = {
+  range: Range;
+  report: Report;
+  lang: Lang;
+  t: Translate;
+  /** Shown under the profit card (comparison) and under the spending (owner's take). */
+  afterProfit?: ReactNode;
+  afterSpend?: ReactNode;
+};
 
 /** Reports (wireframe screen 8). */
-export function ReportView({ range, report, lang, t }: Props) {
+export function ReportView({ range, report, lang, t, afterProfit, afterSpend }: Props) {
   const maxDay = Math.max(...report.bars.map((b) => b.sales), 1);
-  const maxSpend = Math.max(...report.spend.map((s) => s.amount), 1);
   const known = report.weekdays.filter((w) => w.average !== null);
   const bestAverage = Math.max(...known.map((w) => w.average!), 1);
   const worstAverage = Math.min(...known.map((w) => w.average!));
@@ -115,6 +112,8 @@ export function ReportView({ range, report, lang, t }: Props) {
         )}
       </Card>
 
+      {afterProfit}
+
       {report.insights.length > 0 && (
         <Section title={t("What the numbers say")}>
           {report.insights.map((insight) => (
@@ -126,33 +125,11 @@ export function ReportView({ range, report, lang, t }: Props) {
         </Section>
       )}
 
-      {report.spend.length > 0 && (
-        <Section title={t("Where the money goes")}>
-          {report.spend.map((s) => (
-            <div key={s.category} className="flex flex-col gap-1 border-t border-line py-2.5">
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">{t(CATEGORY_LABELS[s.category])}</span>
-                <span className="font-bold">{formatRupees(s.amount)}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-track">
-                <div
-                  className="h-full bg-ink"
-                  style={{ width: `${Math.max((s.amount / maxSpend) * 100, 2)}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted">
-                {t("{share}% of sales", { share: s.share })}
-                {s.previousShare !== null &&
-                  ` · ${
-                    s.previousShare === s.share
-                      ? t(SAME_AS[range.kind])
-                      : t(WAS[range.kind], { share: s.previousShare })
-                  }`}
-              </span>
-            </div>
-          ))}
-        </Section>
+      {(report.sales > 0 || report.spend.length > 0) && (
+        <MoneySplit range={range} report={report} t={t} />
       )}
+
+      {afterSpend}
 
       {known.length > 0 && (
         <Section title={t("Best and worst days")} note={t("Average sales per day in rupees")}>
@@ -249,7 +226,15 @@ export function ReportView({ range, report, lang, t }: Props) {
   );
 }
 
-function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+export function Section({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note?: string;
+  children: ReactNode;
+}) {
   return (
     <section className="flex flex-col">
       <div className="flex items-baseline justify-between pb-1.5">

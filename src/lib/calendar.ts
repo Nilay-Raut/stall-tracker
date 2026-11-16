@@ -33,6 +33,18 @@ export function formatMonth(month: Month, lang: Lang = "en"): string {
   return format.format(new Date(`${month}-01T00:00:00Z`));
 }
 
+const shortMonthFormats = new Map<Lang, Intl.DateTimeFormat>();
+
+/** "Nov" ("नव॰" in Hindi), for chart labels. */
+export function formatMonthShort(month: Month, lang: Lang = "en"): string {
+  let format = shortMonthFormats.get(lang);
+  if (!format) {
+    format = new Intl.DateTimeFormat(LOCALES[lang], { timeZone: "UTC", month: "short" });
+    shortMonthFormats.set(lang, format);
+  }
+  return format.format(new Date(`${month}-01T00:00:00Z`));
+}
+
 /** "November" ("नवंबर" in Hindi). */
 export function formatMonthName(month: Month, lang: Lang = "en"): string {
   return formatMonth(month, lang).replace(/\s*\d+$/, "");

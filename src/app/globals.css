@@ -52,3 +52,11 @@ body {
     outline-offset: 2px;
   }
 }
+
+/* Printing a report (Reports > Share > Print or save as PDF): keep the bar colours. */
+@media print {
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

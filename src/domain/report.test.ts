@@ -15,6 +15,7 @@ const days: ReportDay[] = salesByDay.map((sales, i) => {
     upiSales: r(sales - Math.round(sales * 0.56)),
     expenses: off ? 0 : r(2027), // about ₹26,350 over 13 days
     fixedCost: r(750),
+    cashOut: 0,
   };
 });
 

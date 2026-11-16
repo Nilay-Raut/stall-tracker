@@ -10,6 +10,12 @@ export type Range = {
   /** The period to compare with (same length before, or last month). */
   previousFrom: BusinessDate;
   previousTo: BusinessDate;
+  /**
+   * The same number of days just before, for "compared with before". Equal to the
+   * previous period, except Month: 1–16 Nov is compared with 1–16 Oct, not all of October.
+   */
+  compareFrom: BusinessDate;
+  compareTo: BusinessDate;
 };
 
 const MAX_DAYS = 366;
@@ -50,6 +56,8 @@ export function resolveRange(
       to: today,
       previousFrom: shiftDate(from, -7),
       previousTo: shiftDate(from, -1),
+      compareFrom: shiftDate(from, -7),
+      compareTo: shiftDate(from, -1),
     };
   }
   if (kind === "custom" && isDate(customFrom) && isDate(customTo)) {
@@ -63,15 +71,21 @@ export function resolveRange(
       to,
       previousFrom: shiftDate(from, -length),
       previousTo: shiftDate(from, -1),
+      compareFrom: shiftDate(from, -length),
+      compareTo: shiftDate(from, -1),
     };
   }
   const month = monthOf(today);
   const last = shiftMonth(month, -1);
+  const lastDays = daysInMonth(`${last}-01`);
+  const sameDay = Math.min(Number(today.slice(8)), lastDays); // 31 Mar -> 28 Feb
   return {
     kind: "month",
     from: `${month}-01`,
     to: today,
     previousFrom: `${last}-01`,
-    previousTo: `${last}-${daysInMonth(`${last}-01`)}`,
+    previousTo: `${last}-${lastDays}`,
+    compareFrom: `${last}-01`,
+    compareTo: `${last}-${String(sameDay).padStart(2, "0")}`,
   };
 }

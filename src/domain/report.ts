@@ -16,6 +16,8 @@ export type ReportDay = {
   expenses: Paise;
   /** Rule 5: every day carries its share of fixed costs, closed days too. */
   fixedCost: Paise;
+  /** Cash the owner took out of the drawer that day. */
+  cashOut: Paise;
 };
 
 export type CategoryTotal = { category: ExpenseCategory; amount: Paise };

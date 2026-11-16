@@ -84,7 +84,6 @@ export const reports: Phrases = {
 
   // Where the money goes
   "Where the money goes": { hi: "पैसा कहाँ जाता है", mr: "पैसा कुठे जातो" },
-  "{share}% of sales": { hi: "बिक्री का {share}%", mr: "विक्रीच्या {share}%" },
   "same as the week before": { hi: "पिछले हफ़्ते जितना", mr: "मागच्या आठवड्याइतकेच" },
   "same as last month": { hi: "पिछले महीने जितना", mr: "मागच्या महिन्याइतकेच" },
   "same as the period before": { hi: "पिछली अवधि जितना", mr: "आधीच्या कालावधीइतकेच" },
