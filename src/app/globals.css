@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens, taken from the wireframe.
+ * Use these names in classes (bg-surface, text-muted, border-ink, bg-accent ...)
+ * instead of raw colour codes, so the look can change in one place.
+ */
+@theme {
+  --color-ink: #1a1d21; /* main text, borders, selected tabs */
+  --color-muted: #555e69; /* labels and secondary text */
+  --color-line: #c9ced4; /* row dividers, calendar cell borders */
+  --color-surface: #f1f3f5; /* grey panels, keypad keys */
+  --color-track: #d5dadf; /* empty part of progress bars */
+  --color-idle: #8a939d; /* closed days, lowest bar */
+  --color-accent: #0f7b5a; /* primary buttons, progress, active tab */
+  --color-accent-ink: #ffffff; /* text on accent */
+  --color-warn-bg: #fff3d6; /* notice boxes */
+  --color-warn-ink: #5c3a00;
+  --color-danger: #b42318; /* form errors */
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), sans-serif;
+
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-cta: 14px;
+}
+
+:root {
+  /* The wireframe is light only. Dark mode can be added later with the same tokens. */
+  color-scheme: light;
+}
+
+html {
+  /* Stop iOS from enlarging text on rotate. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* No grey flash when tapping buttons on Android. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Visible focus ring for keyboard users only. In the base layer, so a utility
+   class (outline-none on inputs inside a framed field) can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}

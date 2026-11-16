@@ -1,0 +1,120 @@
+# Every push and pull request: type check, lint, unit tests, build, browser tests.
+# Pushes to main then build the image, push it to ECR and deploy it to the server.
+# AWS access uses GitHub's OIDC token, so no AWS keys are stored in GitHub.
+name: CI and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: stall
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: stall
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U stall -d stall"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://stall:ci_only_password@127.0.0.1:5432/stall
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write # lets GitHub prove to AWS which repo and branch is deploying
+    env:
+      IMAGE: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload server files
+        run: |
+          aws s3 cp deploy/ "s3://${{ vars.DEPLOY_BUCKET }}/deploy/" --recursive \
+            --exclude "aws/*" --exclude "tools/*" --only-show-errors
+
+      - name: Deploy on the server
+        run: |
+          set -euo pipefail
+          BUCKET="${{ vars.DEPLOY_BUCKET }}"
+          COMMAND="aws s3 cp s3://$BUCKET/deploy/ /opt/stall/ --recursive --only-show-errors --region $AWS_REGION && bash /opt/stall/deploy.sh $IMAGE"
+          PARAMS=$(jq -nc --arg c "$COMMAND" '{commands: [$c], executionTimeout: ["900"]}')
+
+          ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy ${GITHUB_SHA::7}" \
+            --parameters "$PARAMS" \
+            --query Command.CommandId --output text)
+          echo "SSM command $ID"
+
+          # Wait up to 15 minutes for the result.
+          for _ in $(seq 1 90); do
+            sleep 10
+            STATUS=$(aws ssm get-command-invocation --command-id "$ID" \
+              --instance-id "${{ vars.INSTANCE_ID }}" --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in Pending|InProgress|Delayed) continue ;; *) break ;; esac
+          done
+
+          aws ssm get-command-invocation --command-id "$ID" --instance-id "${{ vars.INSTANCE_ID }}" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Deploy status: $STATUS"
+          [ "$STATUS" = "Success" ]

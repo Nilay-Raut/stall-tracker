@@ -1,0 +1,11 @@
+{
+  "name": "stall-tracker-tools",
+  "private": true,
+  "description": "Packages for the server-side scripts in the image (migrations, admin reset). Versions match the app.",
+  "type": "module",
+  "dependencies": {
+    "@node-rs/argon2": "2.2.2",
+    "drizzle-orm": "0.45.4",
+    "postgres": "4.1.1"
+  }
+}

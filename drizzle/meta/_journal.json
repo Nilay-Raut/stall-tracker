@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794648670300,
+      "tag": "0000_init_auth_shop",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794732115418,
+      "tag": "0001_entries_days",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794768127463,
+      "tag": "0002_day_close",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794768140964,
+      "tag": "0003_backfill_entered_sales",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794770194120,
+      "tag": "0004_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794805689853,
+      "tag": "0005_purchases",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794807082008,
+      "tag": "0006_monthly_targets",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794809357547,
+      "tag": "0007_push_subscriptions",
+      "breakpoints": true
+    }
+  ]
+}

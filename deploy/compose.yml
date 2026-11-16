@@ -1,0 +1,66 @@
+# Production stack on the EC2 server, in /opt/stall.
+# Values come from /opt/stall/.env, which is created on the server at first boot
+# and never leaves it (POSTGRES_PASSWORD, ORIGIN_SECRET, APP_IMAGE ...).
+#
+# Only Caddy is reachable from outside, on port 80, and only from CloudFront.
+name: stall
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" } # stop logs filling the small disk
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stall
+      POSTGRES_DB: stall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    # Small settings for a 1 GB server with one shop's data.
+    command: >
+      postgres -c shared_buffers=64MB -c max_connections=20
+      -c work_mem=4MB -c maintenance_work_mem=32MB
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stall -d stall"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+    logging: *logging
+
+  app:
+    # Set by deploy.sh. The placeholder only lets the db start before the first deploy.
+    image: ${APP_IMAGE:-stall-app:not-deployed-yet}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://stall:${POSTGRES_PASSWORD}@db:5432/stall
+      # Closing-time reminder; created on the server by deploy.sh.
+      CRON_SECRET: ${CRON_SECRET:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    depends_on:
+      db: { condition: service_healthy }
+    mem_limit: 448m
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      ORIGIN_SECRET: ${ORIGIN_SECRET:?set in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [app]
+    mem_limit: 64m
+    logging: *logging
+
+volumes:
+  db-data:
+  caddy-data:

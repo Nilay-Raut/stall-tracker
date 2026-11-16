@@ -1,0 +1,8 @@
+[Unit]
+Description=Stall Tracker database backup to S3
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /opt/stall/backup.sh nightly

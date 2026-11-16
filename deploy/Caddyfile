@@ -1,0 +1,35 @@
+# Reverse proxy in front of the app. CloudFront talks to it over port 80;
+# visitors always use HTTPS between their phone and CloudFront.
+{
+	auto_https off # no domain yet; CloudFront provides HTTPS
+	admin off
+}
+
+:80 {
+	# Second lock on the door: the security group already allows only CloudFront,
+	# and CloudFront adds this secret header. Anything without it is refused.
+	@notFromCloudFront not header X-Origin-Verify {$ORIGIN_SECRET}
+	respond @notFromCloudFront 403
+
+	# Internal endpoints (closing-time reminder job, Phase 9) are never public.
+	@internal path /api/cron/*
+	respond @internal 404
+
+	request_body {
+		max_size 1MB
+	}
+
+	reverse_proxy app:3000 {
+		# The app never needs to see the secret.
+		header_up -X-Origin-Verify
+		transport http {
+			# Must stay below the app's KEEP_ALIVE_TIMEOUT (65s, see Dockerfile).
+			keepalive 30s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

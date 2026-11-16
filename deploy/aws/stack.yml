@@ -1,0 +1,386 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Stall Tracker: one small EC2 server (app + Postgres + Caddy in Docker) behind
+  CloudFront for free HTTPS, an S3 bucket for backups, an ECR repository for the
+  app image, a GitHub Actions deploy role, and a cost alert.
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: GitHub repository allowed to deploy, as owner/name (e.g. nilay/stall-tracker).
+    AllowedPattern: "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+  CreateGitHubOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Use "false" if this AWS account already has the GitHub OIDC provider (token.actions.githubusercontent.com).
+  CloudFrontPrefixListId:
+    Type: String
+    AllowedPattern: "^pl-[0-9a-f]+$"
+    Description: >-
+      ID of the managed prefix list com.amazonaws.global.cloudfront.origin-facing in this
+      region. Find it in VPC console > Managed prefix lists (see docs/DEPLOY.md).
+  OriginSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    AllowedPattern: "^[A-Za-z0-9]+$"
+    Description: Random letters/digits (32+). CloudFront sends it; the server refuses requests without it.
+  AlertEmail:
+    Type: String
+    Description: Email address for cost alerts.
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 5
+    Description: Alert when usage (before credits) passes 20% and 100% of this amount.
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t2.micro, t3.small]
+  UbuntuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Description: Latest Ubuntu 24.04 LTS image, looked up automatically.
+
+Conditions:
+  CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, "true"]
+  IsUsEast1: !Equals [!Ref "AWS::Region", us-east-1]
+
+Resources:
+  # ---------------- Storage ----------------
+
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain # backups survive even if the stack is deleted
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-backups
+            Status: Enabled
+            Prefix: backups/
+            ExpirationInDays: 30
+          - Id: clean-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 }
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Statement:
+          - Sid: DenyPlainHttp
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt BackupBucket.Arn
+              - !Sub "${BackupBucket.Arn}/*"
+            Condition: { Bool: { "aws:SecureTransport": "false" } }
+
+  AppRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      ImageTagMutability: IMMUTABLE # each image is tagged with its git commit
+      ImageScanningConfiguration: { ScanOnPush: true }
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep the last 5 images",
+            "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+            "action":{"type":"expire"}}]}
+
+  # ---------------- Server ----------------
+
+  ServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Stall Tracker server - web traffic from CloudFront only, no SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+          Description: CloudFront origin-facing servers
+
+  ServerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # Session Manager, no SSH
+      Policies:
+        - PolicyName: stall-server
+          PolicyDocument:
+            Statement:
+              - Sid: PullAppImage
+                Effect: Allow
+                Action:
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !GetAtt AppRepository.Arn
+              - Sid: RegistryLogin
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: ReadWriteBackupsReadDeployFiles
+                Effect: Allow
+                Action: [s3:PutObject, s3:GetObject]
+                Resource:
+                  - !Sub "${BackupBucket.Arn}/backups/*"
+                  - !Sub "${BackupBucket.Arn}/deploy/*"
+              - Sid: ListBucket
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt BackupBucket.Arn
+
+  ServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref ServerRole]
+
+  ServerLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        MetadataOptions:
+          HttpTokens: required # IMDSv2 only
+          HttpPutResponseHopLimit: 1 # containers cannot reach the instance credentials
+        BlockDeviceMappings:
+          - DeviceName: /dev/sda1
+            Ebs: { VolumeSize: 12, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+        IamInstanceProfile: { Arn: !GetAtt ServerInstanceProfile.Arn }
+        SecurityGroupIds: [!GetAtt ServerSecurityGroup.GroupId]
+        TagSpecifications:
+          - ResourceType: instance
+            Tags: [{ Key: Name, Value: stall-tracker }]
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            # First-boot setup. Log: /var/log/stall-setup.log
+            set -euxo pipefail
+            exec > /var/log/stall-setup.log 2>&1
+
+            # 2 GB swap so the 1 GB server survives memory spikes
+            fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+            echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.conf && sysctl -p /etc/sysctl.d/99-swap.conf
+
+            # Docker from Docker's own apt repository
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y ca-certificates curl unattended-upgrades
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            chmod a+r /etc/apt/keyrings/docker.asc
+            echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+            apt-get update
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+            echo '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}' > /etc/docker/daemon.json
+            systemctl restart docker
+            snap install aws-cli --classic
+
+            # Security updates install daily; reboot at 04:30 India time if one needs it
+            cat > /etc/apt/apt.conf.d/52stall-auto-reboot <<'CONF'
+            Unattended-Upgrade::Automatic-Reboot "true";
+            Unattended-Upgrade::Automatic-Reboot-Time "23:00";
+            CONF
+
+            # Server settings. The database password is made here and never leaves the server.
+            mkdir -p /opt/stall && chmod 700 /opt/stall
+            if [ ! -f /opt/stall/.env ]; then
+              umask 077
+              cat > /opt/stall/.env <<CONF
+            POSTGRES_PASSWORD=$(openssl rand -hex 24)
+            ORIGIN_SECRET=${OriginSecret}
+            BACKUP_BUCKET=${BackupBucket}
+            AWS_REGION=${AWS::Region}
+            CONF
+            fi
+            echo "Setup finished"
+
+  Server:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref UbuntuAmi
+      InstanceType: !Ref InstanceType
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ServerLaunchTemplate
+        Version: !GetAtt ServerLaunchTemplate.LatestVersionNumber
+
+  ServerIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref Server
+
+  # ---------------- HTTPS front door ----------------
+
+  Cdn:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Stall Tracker
+        PriceClass: PriceClass_200 # includes India; PriceClass_100 does not
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        ViewerCertificate: { CloudFrontDefaultCertificate: true }
+        Origins:
+          - Id: server
+            # CloudFront needs a host name, not an IP: the server's public DNS name.
+            DomainName: !If
+              - IsUsEast1
+              - !Sub
+                - "ec2-${Dashed}.compute-1.amazonaws.com"
+                - Dashed: !Join ["-", !Split [".", !Ref ServerIp]]
+              - !Sub
+                - "ec2-${Dashed}.${AWS::Region}.compute.amazonaws.com"
+                - Dashed: !Join ["-", !Split [".", !Ref ServerIp]]
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 30
+            OriginCustomHeaders:
+              - HeaderName: X-Origin-Verify
+                HeaderValue: !Ref OriginSecret
+        DefaultCacheBehavior:
+          TargetOriginId: server
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Managed-CachingDisabled
+          OriginRequestPolicyId: 33f36d7e-f396-46d9-90e0-52428a34d9dc # AllViewerAndCloudFrontHeaders-2022-06
+        CacheBehaviors:
+          # Built JS/CSS files have a hash in their name, so they are safe to cache.
+          - PathPattern: /_next/static/*
+            TargetOriginId: server
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+
+  # ---------------- Deploys from GitHub Actions (no stored keys) ----------------
+
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Assumed by the GitHub Actions production deploy job of Stall Tracker
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                # Only jobs in the repo's "production" environment (main branch deploy job).
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:environment:production"
+      Policies:
+        - PolicyName: stall-deploy
+          PolicyDocument:
+            Statement:
+              - Sid: RegistryLogin
+                Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Sid: PushAppImage
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !GetAtt AppRepository.Arn
+              - Sid: UploadDeployFiles
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${BackupBucket.Arn}/deploy/*"
+              - Sid: RunDeployOnServer
+                Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${Server}"
+                  - !Sub "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
+              - Sid: ReadDeployResult
+                Effect: Allow
+                Action: ssm:GetCommandInvocation
+                Resource: "*"
+
+  # ---------------- Cost alert ----------------
+
+  CostAlert:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: stall-tracker-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUsd, Unit: USD }
+        # Count usage before credits, so the alert fires even while credits pay the bill.
+        CostTypes: { IncludeCredit: false, IncludeRefund: false }
+      NotificationsWithSubscribers:
+        - Notification:
+            { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 20 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+        - Notification:
+            { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 100 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+        - Notification:
+            { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100 }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+
+Outputs:
+  AppUrl:
+    Description: Open this on the phone.
+    Value: !Sub "https://${Cdn.DomainName}"
+  AwsRegion:
+    Description: GitHub variable AWS_REGION
+    Value: !Ref "AWS::Region"
+  DeployRoleArn:
+    Description: GitHub variable AWS_DEPLOY_ROLE_ARN
+    Value: !GetAtt DeployRole.Arn
+  EcrRepositoryUri:
+    Description: GitHub variable ECR_REPOSITORY_URI
+    Value: !GetAtt AppRepository.RepositoryUri
+  DeployBucket:
+    Description: GitHub variable DEPLOY_BUCKET
+    Value: !Ref BackupBucket
+  InstanceId:
+    Description: GitHub variable INSTANCE_ID
+    Value: !Ref Server

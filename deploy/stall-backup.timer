@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Stall Tracker backup at 03:30 India time
+
+[Timer]
+# 22:00 UTC = 03:30 IST, after any stall has closed for the night.
+OnCalendar=*-*-* 22:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
