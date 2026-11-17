@@ -63,7 +63,7 @@ jobs:
     # native, much faster build.
     runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 45
-    environment:  self-prod
+    environment: self-prod
     permissions:
       contents: read
       id-token: write # lets GitHub prove to AWS which repo and branch is deploying
