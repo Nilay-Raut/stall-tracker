@@ -1,7 +1,7 @@
 import { monthOf, shiftMonth } from "./calendar";
 import { type BusinessDate, daysInMonth, shiftDate } from "./dates";
 
-export type RangeKind = "week" | "month" | "custom";
+export type RangeKind = "today" | "week" | "month" | "custom";
 
 export type Range = {
   kind: RangeKind;
@@ -38,7 +38,8 @@ export function datesBetween(from: BusinessDate, to: BusinessDate): BusinessDate
 }
 
 /**
- * The report period. Week = the last 7 days; Month = this month so far, compared
+ * The report period. Today = today, compared with the same weekday last week
+ * (a stall's days differ by weekday more than from one day to the next); Week = the last 7 days; Month = this month so far, compared
  * with all of last month; Custom = the chosen dates (never past today, at most a
  * year), compared with the same number of days just before.
  */
@@ -48,6 +49,18 @@ export function resolveRange(
   customFrom?: unknown,
   customTo?: unknown,
 ): Range {
+  if (kind === "today") {
+    const lastWeek = shiftDate(today, -7);
+    return {
+      kind,
+      from: today,
+      to: today,
+      previousFrom: lastWeek,
+      previousTo: lastWeek,
+      compareFrom: lastWeek,
+      compareTo: lastWeek,
+    };
+  }
   if (kind === "week") {
     const from = shiftDate(today, -6);
     return {

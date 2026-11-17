@@ -138,7 +138,7 @@ function Groups({ title, groups, t }: { title: string; groups: Group[]; t: Trans
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-track">
             <div
-              className="h-full bg-ink"
+              className="h-full bg-bar"
               style={{ width: `${Math.max((g.amount / biggest) * 100, 2)}%` }}
             />
           </div>

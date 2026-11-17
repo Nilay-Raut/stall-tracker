@@ -25,8 +25,8 @@ export function MoneyInput({ label, hint, error, id, name, className, ...props }
       </label>
       <div
         className={cn(
-          "flex h-13 items-center rounded-control border-[1.5px] bg-white px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
-          error ? "border-danger" : "border-ink",
+          "flex h-13 items-center rounded-control border bg-field px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
+          error ? "border-danger" : "border-edge",
         )}
       >
         <span aria-hidden className="font-display text-[26px] font-bold">

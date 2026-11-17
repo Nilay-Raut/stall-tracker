@@ -7,8 +7,11 @@ import { cn } from "@/lib/cn";
 
 /** One line under the header saying whether everything is safely on the server. */
 export function SyncLine() {
-  const { state, waiting, refused } = useSyncStatus();
+  const { state, waiting, refused, counted } = useSyncStatus();
   const t = useT();
+
+  // Never claim "All entries saved" before the phone's unsent entries are counted.
+  if (!counted) return <p aria-hidden className="min-h-4 text-xs" />;
 
   let text: string;
   let warn = false;

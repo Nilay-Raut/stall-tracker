@@ -187,6 +187,8 @@ export type SyncStatus = {
   waiting: number;
   /** Changes the server refused; they need the user's attention. */
   refused: number;
+  /** False until the phone's storage has been read: the counts are not known yet. */
+  counted: boolean;
 };
 
 export function useSyncStatus(): SyncStatus {
@@ -196,7 +198,7 @@ export function useSyncStatus(): SyncStatus {
     () => "idle" as SyncState,
   );
   const changes = useLocalVersion();
-  const [counts, setCounts] = useState({ waiting: 0, refused: 0 });
+  const [counts, setCounts] = useState({ waiting: 0, refused: 0, counted: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +209,7 @@ export function useSyncStatus(): SyncStatus {
           setCounts({
             waiting: rows.length + closes.length,
             refused: rows.filter((r) => r.error).length + closes.filter((c) => c.error).length,
+            counted: true,
           });
         }
       })

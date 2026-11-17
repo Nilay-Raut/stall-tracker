@@ -2,6 +2,8 @@ import { businessDate } from "@/lib/dates";
 import { closedProfit, getCloseContext } from "@/server/days";
 import { getDb } from "@/server/db/client";
 import { fixedCostForDate, getDayEntries } from "@/server/entries";
+import { logoVersion } from "@/server/brand";
+import { listItems } from "@/server/items";
 import { getPurchaseHints } from "@/server/purchases";
 import { requireShop } from "@/server/queries/shop";
 import { dailySalesTarget } from "@/server/target";
@@ -15,14 +17,17 @@ import { SnapshotLoader } from "./SnapshotLoader";
 export async function TodaySnapshot() {
   const shop = await requireShop();
   const date = businessDate();
-  const [entries, fixedCostPerDay, profitIfClosed, hints, dailyTarget, close] = await Promise.all([
-    getDayEntries(shop.id, date, { withDeleted: true }),
-    fixedCostForDate(getDb(), shop.id, date),
-    closedProfit(shop.id, date),
-    getPurchaseHints(shop.id),
-    dailySalesTarget(shop.id, date),
-    getCloseContext(shop, date),
-  ]);
+  const [entries, fixedCostPerDay, profitIfClosed, hints, dailyTarget, close, logo, items] =
+    await Promise.all([
+      getDayEntries(shop.id, date, { withDeleted: true }),
+      fixedCostForDate(getDb(), shop.id, date),
+      closedProfit(shop.id, date),
+      getPurchaseHints(shop.id),
+      dailySalesTarget(shop.id, date),
+      getCloseContext(shop, date),
+      logoVersion(shop.id),
+      listItems(shop.id),
+    ]);
 
   return (
     <SnapshotLoader
@@ -36,6 +41,9 @@ export async function TodaySnapshot() {
         closedProfit: profitIfClosed,
         dailyTarget,
         closingTime: shop.closingTime.slice(0, 5),
+        accentColor: shop.accentColor,
+        saleItems: items.map((item) => ({ id: item.id, name: item.name, price: item.price })),
+        logoVersion: logo,
         close: {
           openingCash: close.openingCash,
           previous: close.previousClose,

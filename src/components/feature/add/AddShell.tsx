@@ -48,9 +48,9 @@ export function AddShell({ type, date, today, onDateChange, editing, children }:
       ) : (
         <nav
           aria-label={t("Entry type")}
-          className="grid h-[46px] grid-cols-3 overflow-hidden rounded-card border-[1.5px] border-ink"
+          className="grid h-12 grid-cols-3 gap-1 rounded-full glass-soft p-1"
         >
-          {TABS.map((tab, i) => {
+          {TABS.map((tab) => {
             const active = tab.type === type;
             return (
               <AppLink
@@ -61,9 +61,8 @@ export function AddShell({ type, date, today, onDateChange, editing, children }:
                 replace
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center justify-center text-sm",
-                  i > 0 && "border-l-[1.5px] border-ink",
-                  active ? "bg-ink font-bold text-white" : "font-semibold",
+                  "flex press items-center justify-center rounded-full text-sm",
+                  active ? "bg-ink font-bold text-paper" : "font-semibold text-muted",
                 )}
               >
                 {t(tab.label)}
@@ -74,7 +73,7 @@ export function AddShell({ type, date, today, onDateChange, editing, children }:
       )}
 
       {date !== today && (
-        <p className="rounded-control bg-warn-bg px-2.5 py-1.5 text-xs font-semibold text-warn-ink">
+        <p className="rounded-control bg-warn-bg px-3 py-2 text-xs font-semibold text-warn-ink">
           {t("This entry goes on {day}, not today.", { day: formatDayLabel(date, lang) })}
         </p>
       )}
@@ -97,7 +96,7 @@ function DatePicker({
   const t = useT();
   const lang = useLang();
   return (
-    <label className="relative flex h-10 items-center rounded-control border-[1.5px] border-ink px-3 text-[13px] font-semibold">
+    <label className="relative flex h-10 press items-center rounded-full glass-soft px-3.5 text-[13px] font-semibold">
       {formatDayLabel(date, lang)} ▾
       <input
         type="date"

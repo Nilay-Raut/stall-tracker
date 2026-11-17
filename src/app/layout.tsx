@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ServiceWorker } from "@/components/feature/ServiceWorker";
+import { THEME_SCRIPT } from "@/lib/themeScript";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,12 +28,24 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#ffffff",
+  // Matches --color-canvas in light and dark (src/client/theme.ts updates it on a manual switch).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eef1f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0e12" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
+    // data-theme is set by THEME_SCRIPT before React loads, hence suppressHydrationWarning.
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <ServiceWorker />
         {/* Phone-sized column, centred on bigger screens. */}

@@ -1,15 +1,20 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * - outline: everyday glass card (no blur, cheap to draw)
+ * - muted: the hero card of a screen, real blurred glass
+ * - dashed: optional or "add something" sections
+ */
 type Tone = "outline" | "muted" | "dashed";
 
 const tones: Record<Tone, string> = {
-  outline: "border-[1.5px] border-ink",
-  muted: "bg-surface",
-  dashed: "border-[1.5px] border-dashed border-ink",
+  outline: "glass-soft",
+  muted: "glass",
+  dashed: "border border-dashed border-edge bg-surface",
 };
 
-/** The boxed sections used across the wireframe. */
+/** The boxed sections used across the app. */
 export function Card({
   tone = "outline",
   className,
@@ -17,7 +22,7 @@ export function Card({
 }: { tone?: Tone } & ComponentProps<"section">) {
   return (
     <section
-      className={cn("flex flex-col gap-2 rounded-card px-3.5 py-3", tones[tone], className)}
+      className={cn("flex flex-col gap-2 rounded-card px-4 py-3.5", tones[tone], className)}
       {...props}
     />
   );

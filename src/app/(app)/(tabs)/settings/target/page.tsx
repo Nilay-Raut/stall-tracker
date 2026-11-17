@@ -4,6 +4,7 @@ import { TargetForm } from "@/components/feature/target/TargetForm";
 import { AsOf } from "@/components/ui/AsOf";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import type { TargetPlan } from "@/domain/target";
 import { waysToReach } from "@/domain/ways";
 import { type Translate, translator } from "@/i18n/translate";
@@ -15,7 +16,7 @@ import { itemStats, monthPlan, previousTarget } from "@/server/target";
 
 export const metadata = { title: "Target" };
 
-/** Target (wireframe screen 9). */
+/** Target (wireframe screen 9). Lives under Settings since v2 (docs/PLAN-v2.md, Phase 2). */
 export default function TargetPage() {
   return (
     <Suspense fallback={<Loading />}>
@@ -37,10 +38,11 @@ async function TargetContent() {
   ]);
 
   const header = (
-    <header className="flex min-h-12 items-center justify-between">
-      <h1 className="font-display text-2xl font-bold">{t("Target")}</h1>
-      <span className="text-[13px] text-muted">{monthName}</span>
-    </header>
+    <ScreenHeader
+      title={t("Target")}
+      aside={monthName}
+      back={{ href: "/settings", label: t("Settings") }}
+    />
   );
   const asOf = <AsOf lang={shop.language} />;
 
@@ -112,7 +114,7 @@ async function TargetContent() {
               <span className="text-sm font-bold">{way.head}</span>
               <span className="text-[13px] text-muted">{way.body}</span>
             </span>
-            <span className="text-[15px] font-bold whitespace-nowrap text-accent">
+            <span className="text-[15px] font-bold whitespace-nowrap text-accent-fg">
               + {formatRupees(way.gain)}
             </span>
           </div>

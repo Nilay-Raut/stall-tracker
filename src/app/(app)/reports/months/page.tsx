@@ -56,7 +56,7 @@ async function MonthsContent() {
                   )}
                 </div>
                 {hasLoss && (
-                  <div className="flex h-1/2 flex-col border-t border-ink">
+                  <div className="flex h-1/2 flex-col border-t border-line">
                     {m.profit < 0 && (
                       <div className="rounded-b-[3px] bg-danger" style={{ height }} />
                     )}

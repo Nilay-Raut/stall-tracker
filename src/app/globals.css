@@ -1,35 +1,169 @@
 @import "tailwindcss";
 
 /*
- * Design tokens, taken from the wireframe.
- * Use these names in classes (bg-surface, text-muted, border-ink, bg-accent ...)
- * instead of raw colour codes, so the look can change in one place.
+ * Design tokens (docs/PLAN-v2.md, Phase 1).
+ * Use these names in classes (bg-glass, text-muted, border-edge, bg-accent ...)
+ * instead of raw colour codes. Every token has a dark value below, so screens
+ * get dark mode for free as long as they stick to the tokens.
  */
 @theme {
-  --color-ink: #1a1d21; /* main text, borders, selected tabs */
-  --color-muted: #555e69; /* labels and secondary text */
-  --color-line: #c9ced4; /* row dividers, calendar cell borders */
-  --color-surface: #f1f3f5; /* grey panels, keypad keys */
-  --color-track: #d5dadf; /* empty part of progress bars */
-  --color-idle: #8a939d; /* closed days, lowest bar */
-  --color-accent: #0f7b5a; /* primary buttons, progress, active tab */
-  --color-accent-ink: #ffffff; /* text on accent */
-  --color-warn-bg: #fff3d6; /* notice boxes */
+  /* Text */
+  --color-ink: #12161b; /* main text, selected chips */
+  --color-muted: #545d68; /* labels and secondary text */
+  --color-idle: #8a939d; /* closed days, lowest bar, waiting dot */
+  --color-paper: #ffffff; /* text on an ink background */
+
+  /* Surfaces */
+  --color-canvas: #eef1f4; /* page, under the gradient */
+  --color-glass: rgb(255 255 255 / 0.6); /* glass cards, app bar, nav */
+  --color-glass-strong: rgb(255 255 255 / 0.86); /* sheets, popovers */
+  --color-glass-edge: rgb(255 255 255 / 0.85); /* light rim around glass */
+  --color-field: rgb(255 255 255 / 0.72); /* inputs, outline buttons */
+  --color-edge: rgb(18 22 27 / 0.14); /* input and outline borders */
+  --color-surface: rgb(18 22 27 / 0.05); /* keypad keys, inset panels */
+  --color-line: rgb(18 22 27 / 0.1); /* row dividers, calendar cells */
+  --color-track: rgb(18 22 27 / 0.09); /* empty part of bars */
+  --color-bar: #3d4652; /* neutral chart bars (costs, ordinary days) */
+
+  /* Brand (Phase 2 lets each shop choose --brand) */
+  --color-accent: var(--brand, #0f7b5a);
+  --color-accent-ink: var(--brand-ink, #ffffff);
+  --color-accent-soft: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  --color-accent-fg: var(--color-accent); /* accent-coloured text (lighter in dark mode) */
+
+  /* Status */
+  --color-warn-bg: #fff1cf;
   --color-warn-ink: #5c3a00;
-  --color-danger: #b42318; /* form errors */
+  --color-danger: #b42318;
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-display: var(--font-space-grotesk), var(--font-inter), sans-serif;
 
-  --radius-control: 10px;
-  --radius-card: 12px;
-  --radius-cta: 14px;
+  --radius-control: 14px;
+  --radius-card: 20px;
+  --radius-cta: 16px;
+  --radius-pill: 28px;
+
+  --shadow-glass:
+    0 1px 0 0 rgb(255 255 255 / 0.6) inset, 0 10px 30px -12px rgb(16 24 40 / 0.18),
+    0 2px 6px -2px rgb(16 24 40 / 0.06);
+  --shadow-lift: 0 12px 28px -10px color-mix(in oklab, var(--color-accent) 60%, transparent);
 }
 
-:root {
-  /* The wireframe is light only. Dark mode can be added later with the same tokens. */
-  color-scheme: light;
+/* ---------- Dark theme ---------- */
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-ink: #eef1f5;
+    --color-muted: #a3adb9;
+    --color-idle: #76808c;
+    --color-paper: #0d1014;
+    --color-canvas: #0b0e12;
+    --color-glass: rgb(26 31 38 / 0.6);
+    --color-glass-strong: rgb(28 33 41 / 0.92);
+    --color-glass-edge: rgb(255 255 255 / 0.08);
+    --color-field: rgb(255 255 255 / 0.05);
+    --color-edge: rgb(255 255 255 / 0.16);
+    --color-surface: rgb(255 255 255 / 0.07);
+    --color-line: rgb(255 255 255 / 0.1);
+    --color-track: rgb(255 255 255 / 0.12);
+    --color-bar: #b4bdc8;
+    --color-accent-fg: color-mix(in oklab, var(--color-accent) 55%, white);
+    --color-warn-bg: #3a2c0a;
+    --color-warn-ink: #ffd98a;
+    --color-danger: #ff7a6e;
+    --shadow-glass:
+      0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 12px 32px -12px rgb(0 0 0 / 0.6),
+      0 2px 6px -2px rgb(0 0 0 / 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink: #eef1f5;
+  --color-muted: #a3adb9;
+  --color-idle: #76808c;
+  --color-paper: #0d1014;
+  --color-canvas: #0b0e12;
+  --color-glass: rgb(26 31 38 / 0.6);
+  --color-glass-strong: rgb(28 33 41 / 0.92);
+  --color-glass-edge: rgb(255 255 255 / 0.08);
+  --color-field: rgb(255 255 255 / 0.05);
+  --color-edge: rgb(255 255 255 / 0.16);
+  --color-surface: rgb(255 255 255 / 0.07);
+  --color-line: rgb(255 255 255 / 0.1);
+  --color-track: rgb(255 255 255 / 0.12);
+  --color-bar: #b4bdc8;
+  --color-accent-fg: color-mix(in oklab, var(--color-accent) 55%, white);
+  --color-warn-bg: #3a2c0a;
+  --color-warn-ink: #ffd98a;
+  --color-danger: #ff7a6e;
+  --shadow-glass:
+    0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 12px 32px -12px rgb(0 0 0 / 0.6),
+    0 2px 6px -2px rgb(0 0 0 / 0.4);
+}
+
+/* `dark:` utilities follow the same rule as the tokens. */
+@custom-variant dark {
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+}
+
+/* ---------- Glass ---------- */
+
+/* Blurred glass: app bar, nav, hero card, sheets. Use sparingly (cost on cheap phones). */
+@utility glass {
+  background-color: var(--color-glass);
+  border: 1px solid var(--color-glass-edge);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+}
+
+/* Same look without the blur: everyday cards. */
+@utility glass-soft {
+  background-color: var(--color-glass);
+  border: 1px solid var(--color-glass-edge);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Phones without blur, or that ask for less transparency, get solid surfaces. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --color-glass: var(--color-glass-strong);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --color-glass: var(--color-glass-strong);
+  }
+}
+
+/* Small press-down for anything tappable. */
+@utility press {
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    background-color 160ms ease;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* ---------- Page ---------- */
 
 html {
   /* Stop iOS from enlarging text on rotate. */
@@ -37,11 +171,38 @@ html {
 }
 
 body {
-  background: #ffffff;
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
   /* No grey flash when tapping buttons on Android. */
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Soft accent-tinted gradient behind everything. A fixed layer instead of
+   background-attachment: fixed, which iOS Safari ignores. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      60% 45% at 0% 0%,
+      color-mix(in oklab, var(--color-accent) 26%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 40% at 100% 18%,
+      color-mix(in oklab, var(--color-accent) 14%, #7c9cff 10%),
+      transparent 70%
+    ),
+    radial-gradient(
+      70% 45% at 50% 105%,
+      color-mix(in oklab, var(--color-accent) 16%, transparent),
+      transparent 70%
+    );
 }
 
 /* Visible focus ring for keyboard users only. In the base layer, so a utility
@@ -53,8 +214,48 @@ body {
   }
 }
 
-/* Printing a report (Reports > Share > Print or save as PDF): keep the bar colours. */
+/* Bottom sheet (<dialog>): slide up, dim the page. */
+dialog.sheet {
+  margin: auto auto 0;
+  max-width: 480px;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-ink);
+}
+dialog.sheet::backdrop {
+  background: rgb(5 8 12 / 0.45);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+dialog.sheet[open] > * {
+  animation: sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Printing a report (Reports > Share > Print or save as PDF): plain white, keep bar colours. */
 @media print {
+  body::before {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
   * {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;

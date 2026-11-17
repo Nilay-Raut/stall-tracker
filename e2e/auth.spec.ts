@@ -71,8 +71,9 @@ test("setup saves the shop and fixed costs", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByText("Momo Corner")).toBeVisible();
 
-  // Settings shows what was saved.
+  // Settings > Shop details shows what was saved.
   await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: /Shop details/ }).click();
   await expect(page.getByLabel("Shop name")).toHaveValue("Momo Corner");
   await expect(page.locator("#cost-1-amount")).toHaveValue("12000");
   await expect(page.getByText("₹22,500 a month")).toBeVisible();
@@ -83,7 +84,7 @@ test("log out, then log in again", async ({ page }) => {
   await registerUser(page, phone);
   await completeSetup(page, "Chai Point");
 
-  await page.goto("/setup");
+  await page.goto("/settings");
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/");

@@ -1,0 +1,132 @@
+import {
+  ChevronRight,
+  type LucideIcon,
+  Palette,
+  Store,
+  Target,
+  UtensilsCrossed,
+} from "lucide-react";
+import Link from "next/link";
+import { Suspense } from "react";
+import { InstallHint } from "@/components/feature/InstallHint";
+import { LogoutButton } from "@/components/feature/LogoutButton";
+import { ReminderToggle } from "@/components/feature/ReminderToggle";
+import { ShopMark } from "@/components/ui/AppBar";
+import { type Translate, translator } from "@/i18n/translate";
+import { formatClock } from "@/lib/dates";
+import { listItems } from "@/server/items";
+import { requireShop } from "@/server/queries/shop";
+import { reminderPublicKey } from "@/server/reminders";
+
+export const metadata = { title: "Settings" };
+
+/** Settings hub (docs/PLAN-v2.md, Phase 2): shop, items, target, appearance, reminder, log out. */
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<p className="pt-8 text-center text-muted">…</p>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+async function SettingsContent() {
+  const shop = await requireShop();
+  const t = translator(shop.language);
+  const items = await listItems(shop.id);
+  const activeItems = items.filter((item) => item.active).length;
+
+  return (
+    <>
+      <header className="flex min-h-12 items-center px-1">
+        <h1 className="font-display text-[26px] font-bold">{t("Settings")}</h1>
+      </header>
+
+      <Link href="/setup" className="flex press items-center gap-3.5 rounded-card glass px-4 py-4">
+        <ShopMark name={shop.name} size={56} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate font-display text-xl font-bold">{shop.name}</span>
+          <span className="text-[13px] text-muted">
+            {t("Closes at {time}", { time: formatClock(shop.closingTime) })}
+          </span>
+        </span>
+        <ChevronRight size={20} aria-hidden className="text-muted" />
+      </Link>
+
+      <Group title={t("Shop")}>
+        <Row
+          href="/setup"
+          icon={Store}
+          title={t("Shop details")}
+          note={t("Name, language, closing time, fixed costs")}
+        />
+        <Row
+          href="/settings/items"
+          icon={UtensilsCrossed}
+          title={t("Items and margins")}
+          note={itemsNote(activeItems, t)}
+        />
+        <Row
+          href="/settings/target"
+          icon={Target}
+          title={t("Monthly target")}
+          note={t("Set a profit goal and track it")}
+        />
+      </Group>
+
+      <Group title={t("App")}>
+        <Row
+          href="/settings/appearance"
+          icon={Palette}
+          title={t("Appearance")}
+          note={t("Colour, logo and dark mode")}
+        />
+      </Group>
+
+      <ReminderToggle publicKey={reminderPublicKey()} closingTime={formatClock(shop.closingTime)} />
+      <InstallHint />
+      <LogoutButton />
+    </>
+  );
+}
+
+function itemsNote(count: number, t: Translate): string {
+  if (count === 0) return t("No items yet");
+  return count === 1 ? t("1 item") : t("{n} items", { n: count });
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <h2 className="px-1 text-xs font-bold tracking-wide text-muted uppercase">{title}</h2>
+      <div className="flex flex-col overflow-hidden rounded-card glass-soft">{children}</div>
+    </section>
+  );
+}
+
+function Row({
+  href,
+  icon: Icon,
+  title,
+  note,
+}: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  note: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex min-h-16 press items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-fg">
+        <Icon size={20} aria-hidden />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-[15px] font-bold">{title}</span>
+        <span className="truncate text-xs text-muted">{note}</span>
+      </span>
+      <ChevronRight size={20} aria-hidden className="text-muted" />
+    </Link>
+  );
+}

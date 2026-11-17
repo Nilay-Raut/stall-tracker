@@ -121,7 +121,7 @@ export function DaySummaryView(props: Props) {
       </section>
 
       {insight && (
-        <section className="flex flex-col gap-1 rounded-card border-[1.5px] border-dashed border-ink px-3.5 py-3">
+        <section className="flex flex-col gap-1 rounded-card border border-dashed border-edge px-3.5 py-3">
           <span className="text-xs font-semibold text-muted">{t("From the plate count")}</span>
           <span className="text-sm font-bold">
             {insight.best.quantity === 1
@@ -160,7 +160,7 @@ function Row({
     <div
       className={
         strong
-          ? "flex min-h-12 items-center justify-between border-t-[1.5px] border-ink"
+          ? "flex min-h-12 items-center justify-between border-t border-line"
           : "flex min-h-12 items-center justify-between border-t border-line first:border-t-0"
       }
     >

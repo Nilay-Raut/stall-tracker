@@ -14,9 +14,9 @@ import { useT } from "@/i18n/client";
 import { msg } from "@/i18n/translate";
 import { initialFormState } from "@/server/actions/formState";
 import { saveSetup } from "@/server/actions/setup";
+import type { SalesMode } from "@/domain/entry";
 
 type Language = "en" | "hi" | "mr";
-type SalesMode = "totals" | "totals_items";
 type CostRow = { key: string; name: string; amount: string };
 
 export type SetupValues = {
@@ -40,6 +40,11 @@ const SALES_MODES: ReadonlyArray<{ value: SalesMode; title: string; body: string
     value: "totals_items",
     title: msg("Totals + item count"),
     body: msg("Also count plates of main items. Can be skipped any day."),
+  },
+  {
+    value: "bills",
+    title: msg("Bill each sale"),
+    body: msg("Tap the items for every sale. See what sells best; send bills on WhatsApp."),
   },
 ];
 
@@ -144,8 +149,8 @@ export function SetupForm({ initial, isFirstSetup, daysInMonth, itemCount }: Pro
             <label
               key={mode.value}
               className={cn(
-                "flex cursor-pointer flex-col gap-0.5 rounded-card border-[1.5px] px-3.5 py-3",
-                isOn ? "border-accent bg-accent text-accent-ink" : "border-ink bg-white",
+                "flex cursor-pointer flex-col gap-0.5 rounded-card border px-3.5 py-3",
+                isOn ? "border-accent bg-accent text-accent-ink" : "border-edge bg-field",
               )}
             >
               <input
@@ -212,14 +217,14 @@ export function SetupForm({ initial, isFirstSetup, daysInMonth, itemCount }: Pro
               type="button"
               aria-label={t("Remove cost {n}", { n: i + 1 })}
               onClick={() => setCosts((rows) => rows.filter((r) => r.key !== row.key))}
-              className="mt-6 h-11 rounded-control border-[1.5px] border-ink text-lg"
+              className="mt-6 h-11 rounded-control border border-edge text-lg"
             >
               ×
             </button>
           </div>
         ))}
 
-        <div className="flex items-baseline justify-between border-t-[1.5px] border-ink pt-2">
+        <div className="flex items-baseline justify-between border-t border-line pt-2">
           <span className="text-[15px] font-bold">
             {t("{amount} a month", { amount: formatRupees(monthly) })}
           </span>
@@ -239,7 +244,7 @@ export function SetupForm({ initial, isFirstSetup, daysInMonth, itemCount }: Pro
       ) : (
         <Link
           href="/settings/items"
-          className="flex min-h-14 items-center justify-between rounded-card border-[1.5px] border-ink px-3.5"
+          className="flex min-h-14 items-center justify-between rounded-card border border-edge px-3.5"
         >
           <span className="text-[15px] font-semibold">{t("Items and margins")}</span>
           <span className="text-sm text-muted">

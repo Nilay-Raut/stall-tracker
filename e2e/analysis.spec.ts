@@ -63,6 +63,8 @@ test("reports show where every ₹100 went, the change from before and the owner
 test("month by month lists this month and opens its report", async ({ page }) => {
   await newShop(page);
   await addSale(page, 2500, "UPI");
+  // Entries are saved on the phone first; the report is made on the server.
+  await expect(page.getByText("All entries saved")).toBeVisible();
   await page.goto("/reports/months");
   const row = screen(page).getByRole("link", { name: /so far/ });
   await expect(row).toBeVisible();

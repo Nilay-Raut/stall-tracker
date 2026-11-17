@@ -57,6 +57,20 @@
       "when": 1794809357547,
       "tag": "0007_push_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794942136809,
+      "tag": "0008_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794943873473,
+      "tag": "0009_sale_lines",
+      "breakpoints": true
     }
   ]
 }

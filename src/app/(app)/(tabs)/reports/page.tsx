@@ -46,6 +46,7 @@ async function ReportsContent({ searchParams }: Pick<PageProps<"/reports">, "sea
 }
 
 const TABS = [
+  { kind: "today", label: msg("Today") },
   { kind: "week", label: msg("Week") },
   { kind: "month", label: msg("Month") },
   { kind: "custom", label: msg("Custom") },
@@ -55,7 +56,10 @@ const TABS = [
 function RangePicker({ range, today, t }: { range: Range; today: string; t: Translate }) {
   return (
     <div className="flex flex-col gap-2">
-      <nav aria-label={t("Report period")} className="grid grid-cols-3 gap-2">
+      <nav
+        aria-label={t("Report period")}
+        className="grid h-12 grid-cols-4 gap-1 rounded-full glass-soft p-1"
+      >
         {TABS.map((tab) => (
           <Link
             key={tab.kind}
@@ -66,10 +70,8 @@ function RangePicker({ range, today, t }: { range: Range; today: string; t: Tran
             }
             aria-current={range.kind === tab.kind ? "page" : undefined}
             className={cn(
-              "flex min-h-11 items-center justify-center rounded-control border-[1.5px] text-[13px]",
-              range.kind === tab.kind
-                ? "border-ink bg-ink font-bold text-white"
-                : "border-ink font-semibold",
+              "flex press items-center justify-center rounded-full text-[13px]",
+              range.kind === tab.kind ? "bg-ink font-bold text-paper" : "font-semibold text-muted",
             )}
           >
             {t(tab.label)}
@@ -109,7 +111,7 @@ function DateField({
         name={name}
         defaultValue={value}
         max={max}
-        className="h-11 w-full min-w-0 rounded-control border-[1.5px] border-ink bg-white px-2 text-sm text-ink"
+        className="h-11 w-full min-w-0 rounded-control border border-edge bg-field px-2 text-sm text-ink"
       />
     </label>
   );

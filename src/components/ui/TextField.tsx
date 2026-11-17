@@ -23,8 +23,8 @@ export function TextField({ label, hint, error, id, name, className, ...props }:
         aria-invalid={error ? true : undefined}
         aria-describedby={noteId}
         className={cn(
-          "h-12 w-full min-w-0 rounded-control border-[1.5px] bg-white px-3 text-base",
-          error ? "border-danger" : "border-ink",
+          "h-12 w-full min-w-0 rounded-control border bg-field px-3 text-base",
+          error ? "border-danger" : "border-edge",
           className,
         )}
         {...props}

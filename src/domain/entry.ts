@@ -13,11 +13,20 @@ export const EXPENSE_CATEGORIES = [
   "other",
 ] as const;
 export const PAID_FROM = ["drawer", "upi", "own_pocket"] as const;
+/**
+ * How the shop records sales (rule 13): totals at closing only, sale entries
+ * (+ plate counts), or a bill of items for each sale (v2 Phase 3).
+ */
+export const SALES_MODES = ["totals", "totals_items", "bills"] as const;
 
 export type EntryType = (typeof ENTRY_TYPES)[number];
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 export type PaidFrom = (typeof PAID_FROM)[number];
+export type SalesMode = (typeof SALES_MODES)[number];
+
+/** "Totals only" shops enter sales at closing, not one by one. */
+export const takesSaleEntries = (mode: SalesMode) => mode !== "totals";
 
 /** ₹10 lakh: far above any single entry at a stall, catches typing mistakes. */
 export const MAX_ENTRY_AMOUNT: Paise = 10_00_000_00;
@@ -39,12 +48,35 @@ export type Entry = {
   paidFrom: PaidFrom | null;
   /** Expenses only, optional: what was bought, for supplier price tracking. */
   purchase: Purchase | null;
+  /** Sales only, optional: the bill's items (v2 Phase 3). The amount is their total. */
+  lines: SaleLine[] | null;
   /** When it happened (ISO time), for the time shown in the list. */
   occurredAt: string;
   /** When it was last changed on the phone (ISO time). The latest change wins. */
   updatedAt: string;
   deleted: boolean;
 };
+
+/**
+ * One row of a bill: a saved item (itemId) or a custom one (itemId null).
+ * The price is what this customer paid for one; the server adds the cost itself.
+ */
+export type SaleLine = {
+  itemId: string | null;
+  name: string;
+  unitPrice: Paise;
+  quantity: number;
+};
+
+export const MAX_BILL_LINES = 50;
+export const MAX_LINE_QUANTITY = 999;
+
+export const saleLineSchema = z.object({
+  itemId: z.uuid().nullable(),
+  name: z.string().trim().min(1).max(40),
+  unitPrice: z.int().positive().max(1_00_000_00), // ₹1 lakh for one item
+  quantity: z.int().min(1).max(MAX_LINE_QUANTITY),
+});
 
 /** Material details of an expense: "5 litre of Oil from Gupta Traders". */
 export type Purchase = {
@@ -81,6 +113,8 @@ export const entrySchema = z
     paidFrom: z.enum(PAID_FROM).nullable(),
     // Phones from before Phase 7 send no purchase at all: treat that as none.
     purchase: purchaseSchema.nullable().default(null),
+    // Phones from before v2 send no lines at all: treat that as a plain sale.
+    lines: z.array(saleLineSchema).min(1).max(MAX_BILL_LINES).nullable().default(null),
     occurredAt: isoTime,
     updatedAt: isoTime,
     deleted: z.boolean(),
@@ -103,5 +137,14 @@ export const entrySchema = z
         path: ["purchase"],
         message: "only expenses have a purchase",
       });
+    }
+    if (entry.lines !== null) {
+      if (entry.type !== "sale") {
+        ctx.addIssue({ code: "custom", path: ["lines"], message: "only sales have bill lines" });
+      } else if (
+        entry.lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0) !== entry.amount
+      ) {
+        ctx.addIssue({ code: "custom", path: ["amount"], message: "amount must equal the bill" });
+      }
     }
   });

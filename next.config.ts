@@ -62,6 +62,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Target moved into Settings (docs/PLAN-v2.md, Phase 2); old links and bookmarks still work.
+  async redirects() {
+    return [{ source: "/target", destination: "/settings/target", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

@@ -44,7 +44,11 @@ export function CloseForm({ context, action = closeDay, waitForEntries = true }:
   const [waste, setWaste] = useState(toText(previous?.waste));
 
   const countsPlates = context.plateItems.length > 0;
-  const [plates, setPlates] = useState<Record<string, number>>(context.previousCounts);
+  // First close of a day with bills: start from the bills' counts (v2 Phase 3).
+  const fromBills = previous === null && Object.keys(context.billCounts).length > 0;
+  const [plates, setPlates] = useState<Record<string, number>>(
+    fromBills ? context.billCounts : context.previousCounts,
+  );
   // An earlier close of this day without counts means the owner skipped them.
   const [skipPlates, setSkipPlates] = useState(
     previous !== null && Object.keys(context.previousCounts).length === 0,
@@ -125,7 +129,7 @@ export function CloseForm({ context, action = closeDay, waitForEntries = true }:
           value={`+ ${formatRupees(entered.drawerExpenses)}`}
         />
         <Line label={t("Cash taken out")} value={`+ ${formatRupees(entered.cashOut)}`} />
-        <div className="flex justify-between border-t-[1.5px] border-ink pt-2 text-base font-bold">
+        <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
           <span>{t("Cash sales today")}</span>
           <span>{result ? formatRupees(result.cashSales) : "—"}</span>
         </div>
@@ -150,6 +154,7 @@ export function CloseForm({ context, action = closeDay, waitForEntries = true }:
           onChange={(id, quantity) => setPlates((p) => ({ ...p, [id]: quantity }))}
           skipped={skipPlates}
           onSkip={setSkipPlates}
+          fromBills={fromBills}
         />
       )}
 
@@ -195,16 +200,19 @@ function PlateCounter({
   onChange,
   skipped,
   onSkip,
+  fromBills,
 }: {
   items: Array<{ id: string; name: string }>;
   plates: Record<string, number>;
   onChange: (id: string, quantity: number) => void;
   skipped: boolean;
   onSkip: (skip: boolean) => void;
+  /** The counts were filled in from today's bills. */
+  fromBills: boolean;
 }) {
   const t = useT();
   return (
-    <section className="flex flex-col gap-1 rounded-card border-[1.5px] border-dashed border-ink p-3">
+    <section className="flex flex-col gap-1 rounded-card border border-dashed border-edge p-3">
       <input type="hidden" name="platesSkipped" value={skipped ? "1" : "0"} />
       <div className="flex min-h-7 items-center justify-between">
         <h2 className="text-[13px] font-bold">{t("3. Plates sold (optional)")}</h2>
@@ -216,6 +224,11 @@ function PlateCounter({
           {skipped ? t("Count plates") : t("Skip today")}
         </button>
       </div>
+      {!skipped && fromBills && (
+        <p className="text-xs text-muted">
+          {t("Filled in from today's bills. Add any sold without a bill.")}
+        </p>
+      )}
       {skipped ? (
         <p className="text-xs text-muted">{t("Not counting plates today.")}</p>
       ) : (
@@ -233,7 +246,7 @@ function PlateCounter({
                 aria-label={t("One less {item}", { item: item.name })}
                 disabled={quantity === 0}
                 onClick={() => onChange(item.id, Math.max(quantity - 1, 0))}
-                className="h-11 rounded-control border-[1.5px] border-ink text-xl font-semibold disabled:opacity-30"
+                className="h-11 rounded-control border border-edge text-xl font-semibold disabled:opacity-30"
               >
                 −
               </button>
@@ -252,7 +265,7 @@ function PlateCounter({
                 type="button"
                 aria-label={t("One more {item}", { item: item.name })}
                 onClick={() => onChange(item.id, Math.min(quantity + 1, 9999))}
-                className="h-11 rounded-control border-[1.5px] border-ink text-xl font-semibold"
+                className="h-11 rounded-control border border-edge text-xl font-semibold"
               >
                 +
               </button>
@@ -286,7 +299,9 @@ function CashCheck({ context, cashSales }: { context: CloseContext; cashSales: n
   if (context.cashSaleCount === 0) return null; // nothing entered to compare with
   const difference = cashSales - context.entered.cashSales;
   if (difference === 0) {
-    return <p className="text-sm font-semibold text-accent">{t("Cash matches your entries.")}</p>;
+    return (
+      <p className="text-sm font-semibold text-accent-fg">{t("Cash matches your entries.")}</p>
+    );
   }
   return (
     <Notice

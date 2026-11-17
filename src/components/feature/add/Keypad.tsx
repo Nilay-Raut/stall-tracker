@@ -22,7 +22,7 @@ export function Keypad({ value, onChange }: { value: string; onChange: (next: st
           type="button"
           onClick={() => press(key)}
           aria-label={key === "Del" ? t("Delete last digit") : undefined}
-          className="h-[52px] rounded-control bg-surface text-[22px] font-semibold active:bg-track"
+          className="h-[54px] press rounded-control glass-soft text-[22px] font-semibold active:bg-surface"
         >
           {key === "Del" ? "⌫" : key}
         </button>
@@ -40,7 +40,7 @@ export function QuickAdd({ value, onChange }: { value: string; onChange: (next: 
           key={step}
           type="button"
           onClick={() => onChange(String(Math.min(Number(value || 0) + step, 9_999_999)))}
-          className="h-11 rounded-control border-[1.5px] border-dashed border-ink text-sm font-semibold"
+          className="h-11 press rounded-full border border-accent/30 bg-accent-soft text-sm font-semibold text-ink"
         >
           + ₹{step.toLocaleString("en-IN")}
         </button>

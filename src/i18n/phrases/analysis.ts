@@ -71,9 +71,9 @@ export const analysis: Phrases = {
 
   // Share or download
   "Share or download": { hi: "शेयर या डाउनलोड करें", mr: "शेअर किंवा डाउनलोड करा" },
-  "Period: {period}. Change it on Reports with Week, Month or Custom.": {
-    hi: "अवधि: {period}। इसे रिपोर्ट में हफ़्ता, महीना या तारीख चुनें से बदलें।",
-    mr: "कालावधी: {period}. तो अहवालात आठवडा, महिना किंवा तारखा निवडा वापरून बदला.",
+  "Period: {period}. Change it on Reports with Today, Week, Month or Custom.": {
+    hi: "अवधि: {period}। इसे रिपोर्ट में आज, हफ़्ता, महीना या तारीख चुनें से बदलें।",
+    mr: "कालावधी: {period}. तो अहवालात आज, आठवडा, महिना किंवा तारखा निवडा वापरून बदला.",
   },
   "For a spreadsheet or your accountant": {
     hi: "स्प्रेडशीट या अकाउंटेंट के लिए",

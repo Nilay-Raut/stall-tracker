@@ -125,7 +125,7 @@ test("reports add up the period with fixed costs for every day", async ({ page }
   await addExpense(page, 200, "Gas", "Drawer");
   await expect(page.getByText("All entries saved")).toBeVisible();
 
-  // Close with a plate count, for "Profit by item".
+  // Close with a plate count, for the item sections.
   await page.goto("/close");
   await screen(page).getByLabel("1. Cash in drawer now").fill("5300"); // 5,300 − 1,000 + 700 = 5,000
   await screen(page).getByLabel("2. UPI total").fill("1000");
@@ -151,8 +151,11 @@ test("reports add up the period with fixed costs for every day", async ({ page }
   await expect(screen(page).locator("div", { hasText: /^Raw material ›₹500$/ })).toBeVisible();
   await expect(screen(page).getByText("Cash ₹5,000")).toBeVisible();
   await expect(screen(page).getByText("UPI ₹1,000")).toBeVisible();
-  await expect(screen(page).getByText("50 plates · ₹36 profit each")).toBeVisible();
-  await expect(screen(page).getByText("₹1,800")).toBeVisible();
+  // Top items (v2): plate counts count on days without bills (rule 19).
+  const top = screen(page).getByRole("list").filter({ hasText: "Veg steam momos" }).first();
+  await expect(top).toContainText("₹3,000"); // 50 × ₹60 sales
+  await screen(page).getByRole("radio", { name: "Profit" }).click();
+  await expect(top).toContainText("₹1,800"); // 50 × ₹36 profit
 
   await screen(page).getByRole("link", { name: "Week" }).click();
   await expect(screen(page).getByText("Profit, last 7 days")).toBeVisible();

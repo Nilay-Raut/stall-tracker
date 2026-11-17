@@ -112,3 +112,9 @@ const clockFormat = new Intl.DateTimeFormat("en-GB", {
 export function businessTime(now: Date = new Date()): string {
   return clockFormat.format(now);
 }
+
+/** "22:00" or "22:00:00" -> "10:00 pm" (closing time, reminders). */
+export function formatClock(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
+}

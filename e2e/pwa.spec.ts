@@ -60,7 +60,8 @@ test("the app opens with no signal at all, and entries made then sync later", as
   // Airplane mode, then open the app again from scratch.
   await page.context().setOffline(true);
   await page.reload();
-  await expect(screen(page).getByText("Momo Corner")).toBeVisible();
+  // The shop name sits in the app bar, outside <main>; it comes from the phone's storage.
+  await expect(page.getByText("Momo Corner")).toBeVisible();
   await expect(entryRow(page, "+ ₹1,200")).toBeVisible();
 
   await screen(page).getByRole("link", { name: "+ Sale" }).click();
@@ -130,7 +131,7 @@ test("logging out deletes the pages stored on the phone", async ({ page }) => {
   await waitForOfflineReady(page);
   await todayStored(page);
 
-  await page.goto("/setup");
+  await page.goto("/settings");
   await screen(page).getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   const left = await page.evaluate(async () =>
@@ -201,7 +202,7 @@ test("the reminder job is closed to outsiders and sends one reminder a day", asy
 
 test("Settings has the closing-time reminder switch", async ({ page }) => {
   await newShop(page);
-  await page.goto("/setup");
+  await page.goto("/settings");
   await expect(screen(page).getByText("Remind me at closing time")).toBeVisible();
   await expect(
     screen(page).getByRole("switch", { name: "Remind me at closing time" }),

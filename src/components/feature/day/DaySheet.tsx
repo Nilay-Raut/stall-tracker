@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck, ChevronRight } from "lucide-react";
 import { AppLink } from "@/components/ui/AppLink";
 import type { OutboxRow } from "@/client/localDb";
 import { EntryList } from "@/components/feature/today/EntryList";
@@ -9,9 +10,11 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { computeDayTotals } from "@/domain/dayTotals";
 import type { Entry } from "@/domain/entry";
 import { useT } from "@/i18n/client";
+import { cn } from "@/lib/cn";
 import type { BusinessDate } from "@/lib/dates";
 import { ENTRY_PATHS } from "@/lib/labels";
 import { type Paise, formatRupees } from "@/lib/money";
+import { type SalesMode, takesSaleEntries } from "@/domain/entry";
 
 type Props = {
   date: BusinessDate;
@@ -19,7 +22,7 @@ type Props = {
   entries: Entry[];
   pending: Map<string, OutboxRow>;
   fixedCost: Paise;
-  salesMode: "totals" | "totals_items";
+  salesMode: SalesMode;
   /** Profit from the closing count, if the day is closed. */
   closedProfit: Paise | null;
   /** The day's sales target (from the monthly profit target), if one is set. */
@@ -47,7 +50,7 @@ export function DaySheet({
   const totals = computeDayTotals(entries, fixedCost);
   const breakEvenShare = totals.breakEven > 0 ? totals.sales / totals.breakEven : 1;
   const crossed = totals.sales >= totals.breakEven;
-  const takesSales = salesMode === "totals_items";
+  const takesSales = takesSaleEntries(salesMode);
   const closed = closedProfit !== null;
   // Add screens for another day carry the date along.
   const add = (path: string) => (isToday ? path : `${path}?date=${date}`);
@@ -57,9 +60,10 @@ export function DaySheet({
       {closed && (
         <AppLink
           href={closedPending ? "/close/today" : `/summary/${date}`}
-          className="flex items-center justify-between rounded-card bg-accent px-3.5 py-3 text-accent-ink"
+          className="flex press items-center gap-3 rounded-card bg-accent bg-[linear-gradient(135deg,rgb(255_255_255/0.22),transparent_55%)] px-4 py-3.5 text-accent-ink shadow-lift"
         >
-          <span className="flex flex-col">
+          <CircleCheck size={26} aria-hidden className="shrink-0" />
+          <span className="flex flex-1 flex-col">
             <span className="text-sm font-bold">
               {t("Day closed")}
               {closedPending && ` · ${t("not sent yet")}`}
@@ -68,11 +72,14 @@ export function DaySheet({
               {t("Profit {amount}", { amount: formatRupees(closedProfit) })}
             </span>
           </span>
-          <span className="text-sm font-bold underline">{t("See summary")}</span>
+          <span className="flex items-center text-sm font-bold">
+            {t("See summary")}
+            <ChevronRight size={18} aria-hidden />
+          </span>
         </AppLink>
       )}
 
-      <Card tone="muted" className="gap-2.5 py-4">
+      <Card tone="muted" className="gap-3 px-5 py-5">
         <div className="flex justify-between text-[13px]">
           <span className="font-semibold text-muted">
             {isToday ? t("Sales so far") : t("Sales entered")}
@@ -83,7 +90,7 @@ export function DaySheet({
               : t("Break-even {amount}", { amount: formatRupees(totals.breakEven) })}
           </span>
         </div>
-        <div className="font-display text-[46px] leading-none font-bold">
+        <div className="font-display text-[52px] leading-none font-bold tracking-tight">
           {formatRupees(totals.sales)}
         </div>
         <ProgressBar
@@ -118,13 +125,14 @@ export function DaySheet({
         </div>
       </Card>
 
-      <Card className="gap-0 py-1">
+      <Card className="gap-0 py-1.5">
         <Row label={t("Expenses")} value={formatRupees(totals.expenses)} />
         <Row label={t("Fixed costs")} value={formatRupees(totals.fixedCost)} />
         <Row
           label={isToday ? t("Profit so far") : t("Profit")}
           value={formatRupees(totals.profit)}
           strong
+          tone={totals.profit < 0 ? "bad" : totals.profit > 0 ? "good" : undefined}
         />
       </Card>
 
@@ -137,6 +145,7 @@ export function DaySheet({
         <ButtonLink
           href={add(ENTRY_PATHS.expense)}
           size="lg"
+          variant={takesSales ? "outline" : "primary"}
           className={takesSales ? "" : "col-span-2"}
         >
           {t("+ Expense")}
@@ -171,17 +180,38 @@ export function DaySheet({
   );
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Row({
+  label,
+  value,
+  strong,
+  tone,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  tone?: "good" | "bad";
+}) {
   return (
     <div
       className={
         strong
-          ? "flex min-h-12 items-center justify-between border-t-[1.5px] border-ink"
+          ? "mt-1 flex min-h-13 items-center justify-between border-t border-line"
           : "flex min-h-11 items-center justify-between"
       }
     >
-      <span className={strong ? "text-base font-bold" : "text-[15px] font-semibold"}>{label}</span>
-      <span className={strong ? "text-lg font-bold" : "text-base font-bold"}>{value}</span>
+      <span className={strong ? "text-base font-bold" : "text-[15px] font-medium text-muted"}>
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-display",
+          strong ? "text-xl font-bold" : "text-base font-bold",
+          tone === "good" && "text-accent-fg",
+          tone === "bad" && "text-danger",
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }

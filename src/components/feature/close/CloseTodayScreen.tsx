@@ -1,5 +1,6 @@
 "use client";
 
+import { plateCountsFromBills } from "@/domain/bill";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { queueClose, usePendingClose } from "@/client/closes";
@@ -63,6 +64,7 @@ export function CloseTodayScreen() {
           previousCounts: pending
             ? Object.fromEntries((pending.plateCounts ?? []).map((c) => [c.itemId, c.quantity]))
             : info.previousCounts,
+          billCounts: plateCountsFromBills(view.entries),
         }
       : null;
 

@@ -31,7 +31,7 @@ export type MaterialRise = {
   since: string;
 };
 
-export type PeriodKind = "week" | "month" | "custom";
+export type PeriodKind = "today" | "week" | "month" | "custom";
 
 export type ReportInput = {
   kind: PeriodKind;
@@ -81,6 +81,7 @@ export const WEEKDAY_NAMES = [
 
 /** Insight about a growing spending category, per kind of period. */
 const SHARE_NOTES: Record<PeriodKind, string> = {
+  today: msg("{name} is {share}% of sales today. It was {previous}% on the same day last week."),
   week: msg("{name} is {share}% of sales this week. It was {previous}% the week before."),
   month: msg("{name} is {share}% of sales this month. It was {previous}% last month."),
   custom: msg(
