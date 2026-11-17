@@ -81,7 +81,9 @@ Keep it somewhere safe for the next step. It is not needed again after that.
 2. **Upload a template file** and choose `deploy/aws/stack.yml`.
 3. Stack name: `stall-tracker`.
 4. Parameters:
-   - **GitHubRepo**: `<your-github-user>/stall-tracker`
+   - **GitHubRepo**: `<your-github-user>/stall-tracker`, spelled exactly as in the repository's URL
+   - **GitHubOwnerId** and **GitHubRepoId**: the numeric IDs of your GitHub account and repository. Open `https://api.github.com/repos/<your-github-user>/stall-tracker` in a browser (log in first if the repo is private, or use `gh api repos/<your-github-user>/stall-tracker`): **GitHubOwnerId** is `owner.id`, **GitHubRepoId** is the top-level `id`. GitHub includes both in the identity it sends to AWS, and AWS refuses the deploy if they are missing here.
+   - **GitHubEnvironment**: `self-prod` (default). Must match `environment:` in [ci-deploy.yml](../.github/workflows/ci-deploy.yml) and the environment name in step 5.
    - **CreateGitHubOidcProvider**: `true` (use `false` only if the account already has the GitHub provider; the stack fails with "already exists" if so)
    - **CloudFrontPrefixListId**: from step 2
    - **OriginSecret**: from step 3
@@ -105,18 +107,26 @@ This means AWS had no free server of that size in the zone it picked (Mumbai has
 
 In the GitHub repository:
 
-1. **Settings > Environments > New environment**, name it exactly `production`. Under **Deployment branches**, choose **Selected branches** and add `main`. (Optional: add yourself as a required reviewer to approve each deploy.)
-2. **Settings > Secrets and variables > Actions > Variables > New repository variable**, add five variables from the stack Outputs:
+1. **Settings > Environments > New environment**, name it exactly `self-prod` (the same as **GitHubEnvironment** in step 4). Under **Deployment branches**, choose **Selected branches** and add `main`. (Optional: add yourself as a required reviewer to approve each deploy.)
+2. **Settings > Secrets and variables > Actions > Variables > New repository variable**, add five variables. Each one's **value** is the text in the **Value** column of the stack's Outputs tab, not the output's name:
 
-| Variable              | Stack output       |
-| --------------------- | ------------------ |
-| `AWS_REGION`          | `AwsRegion`        |
-| `AWS_DEPLOY_ROLE_ARN` | `DeployRoleArn`    |
-| `ECR_REPOSITORY_URI`  | `EcrRepositoryUri` |
-| `DEPLOY_BUCKET`       | `DeployBucket`     |
-| `INSTANCE_ID`         | `InstanceId`       |
+| Variable              | Copy the Value of output | Example value                                                      |
+| --------------------- | ------------------------ | ------------------------------------------------------------------ |
+| `AWS_REGION`          | `AwsRegion`              | `ap-south-1`                                                       |
+| `AWS_DEPLOY_ROLE_ARN` | `DeployRoleArn`          | `arn:aws:iam::123456789012:role/stall-tracker-DeployRole-AbC123`   |
+| `ECR_REPOSITORY_URI`  | `EcrRepositoryUri`       | `123456789012.dkr.ecr.ap-south-1.amazonaws.com/stall-tracker-appr` |
+| `DEPLOY_BUCKET`       | `DeployBucket`           | `stall-tracker-backupbucket-abc123`                                |
+| `INSTANCE_ID`         | `InstanceId`             | `i-0123456789abcdef0`                                              |
 
 No AWS keys go into GitHub. GitHub proves which repository and environment it is, and AWS lets only that one deploy.
+
+**If the deploy fails at "configure-aws-credentials":**
+
+- `Region is not valid: AwsRegion` (or any other output name): a variable holds the output's name instead of its value. Fix the variable as in the table above.
+- `Not authorized to perform sts:AssumeRoleWithWebIdentity`: the identity GitHub sent does not match the role's trust relationship exactly. To see what GitHub sent: **CloudTrail > Event history** (region ap-south-1), filter **Event name** = `AssumeRoleWithWebIdentity`, open the newest `AccessDenied` event and read **User name**. It looks like `repo:Owner@92261105/stall-tracker@1459685435:environment:self-prod`. Compare it with **IAM > Roles > stall-tracker-DeployRole-… > Trust relationships**, the `…:sub` line. Then fix the stack parameters to match (**CloudFormation > stall-tracker > Update > Use current template**):
+  - the numbers after `@` → **GitHubOwnerId** and **GitHubRepoId** (if GitHub sends no `@` numbers, leave both blank)
+  - the names → **GitHubRepo**, exact upper/lower case
+  - the part after `environment:` → **GitHubEnvironment**, which must also match `environment:` in `ci-deploy.yml`
 
 3. Optional, for faster deploys: if your GitHub plan includes ARM runners, add a sixth variable `BUILD_RUNNER` with the value `ubuntu-24.04-arm`. Without it, GitHub builds the ARM image on a normal Intel/AMD runner through emulation, which works but is several times slower (expect 15 to 30 minutes for the image instead of about 5).
 

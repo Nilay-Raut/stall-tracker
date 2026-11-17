@@ -9,6 +9,26 @@ Parameters:
     Type: String
     Description: GitHub repository allowed to deploy, as owner/name (e.g. nilay/stall-tracker).
     AllowedPattern: "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+  GitHubEnvironment:
+    Type: String
+    Default: self-prod
+    AllowedPattern: "^[A-Za-z0-9_.-]+$"
+    Description: >-
+      Name of the GitHub environment the deploy job runs in. Must match "environment:" in
+      .github/workflows/ci-deploy.yml exactly (upper/lower case too), or AWS refuses the deploy.
+  GitHubOwnerId:
+    Type: String
+    Default: ""
+    AllowedPattern: "^[0-9]*$"
+    Description: >-
+      Numeric ID of the GitHub account that owns the repo (e.g. 92261105). GitHub now puts it in
+      the identity it sends to AWS. Find it at https://api.github.com/repos/OWNER/NAME as owner.id.
+      Leave blank only if GitHub still sends the older format without IDs (see docs/DEPLOY.md).
+  GitHubRepoId:
+    Type: String
+    Default: ""
+    AllowedPattern: "^[0-9]*$"
+    Description: Numeric ID of the repository (e.g. 1459685435), the top-level "id" at the same URL.
   CreateGitHubOidcProvider:
     Type: String
     Default: "true"
@@ -57,6 +77,9 @@ Conditions:
   CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, "true"]
   IsUsEast1: !Equals [!Ref "AWS::Region", us-east-1]
   HasZone: !Not [!Equals [!Ref AvailabilityZone, ""]]
+  HasGitHubIds: !And
+    - !Not [!Equals [!Ref GitHubOwnerId, ""]]
+    - !Not [!Equals [!Ref GitHubRepoId, ""]]
 
 Resources:
   # ---------------- Storage ----------------
@@ -320,8 +343,18 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # Only jobs in the repo's "production" environment (main branch deploy job).
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:environment:production"
+                # Only jobs in the repo's deploy environment (main branch deploy job).
+                # GitHub's newer format adds the owner and repo IDs:
+                #   repo:Owner@123/name@456:environment:self-prod
+                # The IDs never change, so a different repo that later takes the same name
+                # cannot deploy. Without IDs, the older format repo:Owner/name:environment:... is used.
+                token.actions.githubusercontent.com:sub: !If
+                  - HasGitHubIds
+                  - !Sub
+                    - "repo:${Owner}@${GitHubOwnerId}/${Name}@${GitHubRepoId}:environment:${GitHubEnvironment}"
+                    - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                      Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
+                  - !Sub "repo:${GitHubRepo}:environment:${GitHubEnvironment}"
       Policies:
         - PolicyName: stall-deploy
           PolicyDocument:
