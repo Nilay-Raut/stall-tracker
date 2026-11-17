@@ -40,6 +40,14 @@ Parameters:
     Default: t4g.micro
     AllowedValues: [t4g.micro, t4g.small]
     Description: t4g.micro has 1 GB memory, t4g.small 2 GB. Both are ARM (Graviton).
+  AvailabilityZone:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^[a-z]{2}(-[a-z]+)+-[0-9][a-z]$"
+    Description: >-
+      Zone for the server, e.g. ap-south-1a, ap-south-1b or ap-south-1c. Leave blank to let AWS
+      choose. Set it when stack creation fails with "Insufficient capacity" in the zone AWS picked.
+      Changing it later replaces the server and its disk (back up first, see docs/DEPLOY.md).
   UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
@@ -48,6 +56,7 @@ Parameters:
 Conditions:
   CreateOidc: !Equals [!Ref CreateGitHubOidcProvider, "true"]
   IsUsEast1: !Equals [!Ref "AWS::Region", us-east-1]
+  HasZone: !Not [!Equals [!Ref AvailabilityZone, ""]]
 
 Resources:
   # ---------------- Storage ----------------
@@ -222,6 +231,8 @@ Resources:
     Properties:
       ImageId: !Ref UbuntuAmi
       InstanceType: !Ref InstanceType
+      # Blank = AWS picks a zone. In the default VPC, each zone has its own default subnet.
+      AvailabilityZone: !If [HasZone, !Ref AvailabilityZone, !Ref "AWS::NoValue"]
       LaunchTemplate:
         LaunchTemplateId: !Ref ServerLaunchTemplate
         Version: !GetAtt ServerLaunchTemplate.LatestVersionNumber

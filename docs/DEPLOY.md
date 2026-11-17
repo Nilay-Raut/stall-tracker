@@ -87,10 +87,19 @@ Keep it somewhere safe for the next step. It is not needed again after that.
    - **OriginSecret**: from step 3
    - **AlertEmail**: your email
    - **InstanceType**: `t4g.micro` (default), or `t4g.small` for more memory
+   - **AvailabilityZone**: leave blank so AWS picks one, unless you hit "Insufficient capacity" (below)
    - Leave the rest as they are. **UbuntuAmi** must stay the `arm64` image.
 5. Next, next, tick **"I acknowledge that AWS CloudFormation might create IAM resources"**, then **Submit**.
 
 It takes 5 to 15 minutes (CloudFront is the slow part). When the status is `CREATE_COMPLETE`, open the **Outputs** tab.
+
+### If it fails with "Insufficient capacity"
+
+This means AWS had no free server of that size in the zone it picked (Mumbai has three zones: `ap-south-1a`, `ap-south-1b`, `ap-south-1c`). It is on AWS's side, not a mistake in your setup.
+
+1. A failed first create ends in `ROLLBACK_COMPLETE` and cannot be retried. **Delete** the stack. The backup bucket is kept on purpose; since it is empty, you can delete it in S3.
+2. Create the stack again, this time setting **AvailabilityZone** to one of the zones, for example `ap-south-1b`. If that fails too, try `ap-south-1c`, then `ap-south-1a`.
+3. Still failing everywhere: pick **InstanceType** `t4g.small` (a separate pool), or wait 30 to 60 minutes and try again.
 
 ## Step 5: Connect GitHub to AWS
 
@@ -168,6 +177,8 @@ Between `t4g.micro` and `t4g.small`: **CloudFormation > stall-tracker > Update >
 4. On the new server: `cd /opt/stall && sudo bash restore.sh <file-name>`.
 
 The backup bucket, CloudFront address and Elastic IP stay the same.
+
+**Changing AvailabilityZone on a running stack** also replaces the server and its disk. Follow the same four steps (back up, update, deploy, restore). If the zone is changed only so that the stack can be created at all, there is no data yet and nothing to back up.
 
 ## Installing on the phone and the closing reminder
 
