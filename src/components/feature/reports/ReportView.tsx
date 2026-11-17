@@ -26,6 +26,7 @@ export const dayAndMonth = (date: BusinessDate, lang: Lang = "en") =>
 
 /** "1 to 13 Nov", or "28 Oct to 3 Nov" across months. */
 export function rangeLabel(from: BusinessDate, to: BusinessDate, lang: Lang, t: Translate): string {
+  if (from === to) return dayAndMonth(from, lang);
   const [fromDay, ...fromMonth] = dayAndMonth(from, lang).split(" ");
   const toText = dayAndMonth(to, lang);
   const sameMonth = fromMonth.join(" ") === toText.split(" ").slice(1).join(" ");
@@ -36,6 +37,7 @@ export function rangeLabel(from: BusinessDate, to: BusinessDate, lang: Lang, t: 
 }
 
 function profitTitle(range: Range, lang: Lang, t: Translate): string {
+  if (range.kind === "today") return t("Profit today");
   if (range.kind === "month") return t("Profit this month");
   if (range.kind === "week") return t("Profit, last 7 days");
   return t("Profit, {range}", { range: rangeLabel(range.from, range.to, lang, t) });
@@ -53,10 +55,20 @@ type Props = {
   /** Shown under the profit card (comparison) and under the spending (owner's take). */
   afterProfit?: ReactNode;
   afterSpend?: ReactNode;
+  /** Item and bill sections (v2 Phase 4); replace the plate-count "Profit by item". */
+  itemSections?: ReactNode;
 };
 
 /** Reports (wireframe screen 8). */
-export function ReportView({ range, report, lang, t, afterProfit, afterSpend }: Props) {
+export function ReportView({
+  range,
+  report,
+  lang,
+  t,
+  afterProfit,
+  afterSpend,
+  itemSections,
+}: Props) {
   const maxDay = Math.max(...report.bars.map((b) => b.sales), 1);
   const known = report.weekdays.filter((w) => w.average !== null);
   const bestAverage = Math.max(...known.map((w) => w.average!), 1);
@@ -150,7 +162,7 @@ export function ReportView({ range, report, lang, t, afterProfit, afterSpend }: 
                       ? "bg-accent"
                       : w.average === worstAverage
                         ? "bg-idle"
-                        : "bg-ink",
+                        : "bg-bar",
                   )}
                   style={{
                     height: `${w.average ? Math.max((w.average / bestAverage) * 70, 3) : 0}px`,
@@ -189,7 +201,9 @@ export function ReportView({ range, report, lang, t, afterProfit, afterSpend }: 
         </Section>
       )}
 
-      {report.items.length > 0 && (
+      {itemSections}
+
+      {!itemSections && report.items.length > 0 && (
         <Section title={t("Profit by item")} note={t("From plate counts")}>
           {report.items.map((item) => (
             <div
@@ -217,7 +231,7 @@ export function ReportView({ range, report, lang, t, afterProfit, afterSpend }: 
 
       <Link
         href="/reports/prices"
-        className="flex min-h-13 items-center justify-between rounded-card border-[1.5px] border-ink px-3.5"
+        className="flex min-h-13 items-center justify-between rounded-card border border-edge px-3.5"
       >
         <span className="text-[15px] font-semibold">{t("Supplier prices")}</span>
         <span aria-hidden>›</span>

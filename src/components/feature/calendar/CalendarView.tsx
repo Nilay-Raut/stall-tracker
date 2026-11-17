@@ -94,7 +94,7 @@ function MonthLink({
   disabled?: boolean;
 }) {
   const style =
-    "flex size-11 items-center justify-center rounded-control border-[1.5px] border-ink text-lg font-semibold";
+    "flex size-11 items-center justify-center rounded-control border border-edge text-lg font-semibold";
   if (disabled) {
     return (
       <span aria-disabled className={cn(style, "opacity-30")} aria-label={label}>
@@ -143,11 +143,11 @@ function DayCell({
             : formatDayLabel(date, lang)
       }
       className={cn(
-        "flex h-[50px] flex-col items-center justify-center gap-px rounded-control border-[1.5px]",
+        "flex h-[50px] flex-col items-center justify-center gap-px rounded-control border",
         selected
           ? "border-accent bg-accent text-accent-ink"
           : date === today
-            ? "border-ink"
+            ? "border-edge"
             : "border-line",
         future && "text-muted",
       )}
@@ -156,7 +156,7 @@ function DayCell({
       <span
         className={cn(
           "min-h-3 text-[11px] leading-none font-bold",
-          !selected && (off ? "text-muted" : "text-accent"),
+          !selected && (off ? "text-muted" : "text-accent-fg"),
         )}
       >
         {mark}
@@ -197,7 +197,7 @@ function DayPanel({
         {formatDayLabel(date, lang)}
         {isToday && ` ${t("(today)")}`}
         {day?.status === "closed" && (
-          <span className="ml-2 text-xs font-semibold text-accent">{t("Day closed")}</span>
+          <span className="ml-2 text-xs font-semibold text-accent-fg">{t("Day closed")}</span>
         )}
       </h2>
 
@@ -229,7 +229,7 @@ function DayPanel({
             type="button"
             disabled={pending}
             onClick={() => toggleOff(false)}
-            className="min-h-12 rounded-card border-[1.5px] border-dashed border-ink text-sm font-semibold disabled:opacity-40"
+            className="min-h-12 rounded-card border border-dashed border-edge text-sm font-semibold disabled:opacity-40"
           >
             {t("Shop was open")}
           </button>
@@ -238,7 +238,7 @@ function DayPanel({
             type="button"
             disabled={pending || hasData}
             onClick={() => toggleOff(true)}
-            className="min-h-12 rounded-card border-[1.5px] border-dashed border-ink text-sm font-semibold disabled:opacity-40"
+            className="min-h-12 rounded-card border border-dashed border-edge text-sm font-semibold disabled:opacity-40"
           >
             {t("Mark shop closed")}
           </button>

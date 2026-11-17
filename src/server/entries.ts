@@ -2,15 +2,20 @@ import "server-only";
 import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { type CloseInput, computeClose } from "@/domain/dayClose";
 import { computeDayTotals } from "@/domain/dayTotals";
-import type { Entry, Purchase } from "@/domain/entry";
+import type { Entry, Purchase, SaleLine } from "@/domain/entry";
 import type { SyncResult } from "@/domain/sync";
 import { fixedCostPerDay, monthlyFixedTotal } from "@/domain/fixedCosts";
 import { type BusinessDate, businessDate, daysInMonth } from "@/lib/dates";
 import { type Db, type Tx, getDb } from "@/server/db/client";
 import { type DayRow, type EntryRow, days, entries, fixedCosts } from "@/server/db/schema";
 import { deletePurchase, purchasesFor, savePurchase } from "@/server/purchases";
+import { deleteLines, linesFor, saveLines } from "@/server/saleLines";
 
-export function toEntry(row: EntryRow, purchase: Purchase | null = null): Entry {
+export function toEntry(
+  row: EntryRow,
+  purchase: Purchase | null = null,
+  lines: SaleLine[] | null = null,
+): Entry {
   return {
     id: row.id,
     businessDate: row.businessDate,
@@ -20,6 +25,7 @@ export function toEntry(row: EntryRow, purchase: Purchase | null = null): Entry 
     category: row.category,
     paidFrom: row.paidFrom,
     purchase,
+    lines,
     occurredAt: row.occurredAt.toISOString(),
     updatedAt: row.clientUpdatedAt.toISOString(),
     deleted: row.deletedAt !== null,
@@ -46,8 +52,11 @@ export async function getDayEntries(
       ),
     )
     .orderBy(asc(entries.occurredAt));
-  const bought = await purchasesFor(rows.filter((r) => r.type === "expense").map((r) => r.id));
-  return rows.map((row) => toEntry(row, bought.get(row.id) ?? null));
+  const [bought, billed] = await Promise.all([
+    purchasesFor(rows.filter((r) => r.type === "expense").map((r) => r.id)),
+    linesFor(rows.filter((r) => r.type === "sale").map((r) => r.id)),
+  ]);
+  return rows.map((row) => toEntry(row, bought.get(row.id) ?? null, billed.get(row.id) ?? null));
 }
 
 /** Fixed cost charged to each day of the month that `date` is in. */
@@ -219,6 +228,12 @@ export async function applyEntryChanges(
         await savePurchase(tx, shopId, change.id, change.purchase, change.amount);
       } else {
         await deletePurchase(tx, change.id);
+      }
+      // A deleted sale keeps its lines out of item reports.
+      if (change.type === "sale" && change.lines && !change.deleted) {
+        await saveLines(tx, shopId, change.id, change.lines);
+      } else {
+        await deleteLines(tx, change.id);
       }
 
       touchedDates.add(change.businessDate);

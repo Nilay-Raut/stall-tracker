@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { clearBrand } from "@/client/brand";
 import { localDb, wipeLocalData } from "@/client/localDb";
 import { deleteStoredPages } from "@/client/online";
 import { Button } from "@/components/ui/Button";
@@ -47,6 +48,7 @@ export function LogoutButton() {
         await turnOffReminder(subscription.endpoint).catch(() => {});
         await subscription.unsubscribe().catch(() => {});
       }
+      clearBrand();
       await Promise.all([wipeLocalData().catch(() => {}), deleteStoredPages().catch(() => {})]);
       await logout();
     });

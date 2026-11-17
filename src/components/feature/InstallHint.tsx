@@ -55,7 +55,7 @@ export function InstallHint() {
   };
 
   return (
-    <section className="flex items-center justify-between gap-3 rounded-card border-[1.5px] border-dashed border-ink px-3.5 py-2.5">
+    <section className="flex items-center justify-between gap-3 rounded-card border border-dashed border-edge px-3.5 py-2.5">
       <span className="flex flex-col">
         <span className="text-sm font-bold">{t("Add the app to your phone")}</span>
         <span className="text-xs text-muted">

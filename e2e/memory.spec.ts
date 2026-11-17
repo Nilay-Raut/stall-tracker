@@ -26,7 +26,7 @@ async function measure(page: Page): Promise<Sample> {
 
 async function switchTabs(page: Page) {
   const nav = page.getByRole("navigation", { name: "Main" });
-  for (const tab of ["Calendar", "Reports", "Target", "Today"]) {
+  for (const tab of ["Calendar", "Reports", "Today"]) {
     await nav.getByRole("link", { name: tab }).click();
     await expect(nav.getByRole("link", { name: tab })).toHaveAttribute("aria-current", "page");
   }

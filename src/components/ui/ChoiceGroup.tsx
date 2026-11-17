@@ -32,7 +32,7 @@ export function ChoiceGroup<T extends string>({
   name,
 }: Props<T>) {
   const selected =
-    tone === "accent" ? "border-accent bg-accent text-accent-ink" : "border-ink bg-ink text-white";
+    tone === "accent" ? "border-accent bg-accent text-accent-ink" : "border-ink bg-ink text-paper";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -49,8 +49,8 @@ export function ChoiceGroup<T extends string>({
               aria-checked={isOn}
               onClick={() => onChange(choice.value)}
               className={cn(
-                "min-h-12 rounded-control border-[1.5px] px-2 text-[13px]",
-                isOn ? cn(selected, "font-bold") : "border-ink bg-white font-semibold text-ink",
+                "min-h-12 press rounded-control border px-2 text-[13px]",
+                isOn ? cn(selected, "font-bold") : "border-edge bg-field font-semibold text-ink",
               )}
             >
               {choice.label}

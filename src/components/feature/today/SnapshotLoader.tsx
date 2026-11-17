@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { syncBrand } from "@/client/brand";
 import { applySnapshot } from "@/client/entries";
 import type { ShopSnapshot } from "@/client/localDb";
 import type { Entry } from "@/domain/entry";
@@ -16,6 +17,9 @@ export function SnapshotLoader({
 }) {
   useEffect(() => {
     if (snapshot.language) setLang(snapshot.language);
+    syncBrand(snapshot.accentColor ?? null, snapshot.logoVersion ?? null).catch(() => {
+      // Offline or the logo failed to load: keep what the phone has, try again next time.
+    });
     applySnapshot(snapshot, entries).catch((error) => {
       console.error("Could not store the latest data on this phone", error);
     });

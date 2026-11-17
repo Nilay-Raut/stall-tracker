@@ -39,7 +39,7 @@ async function ItemsContent() {
 
   return (
     <>
-      <ScreenHeader title={t("Items")} back={{ href: "/setup", label: t("Settings") }} />
+      <ScreenHeader title={t("Items")} back={{ href: "/settings", label: t("Settings") }} />
       {items.length > 0 && (
         <section className="grid grid-cols-3 gap-2">
           <Stat label={t("Items")} value={String(items.length)} />

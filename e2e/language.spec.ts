@@ -38,7 +38,7 @@ test("choosing Hindi in Setup switches the whole app, and it stays after logout"
   await expect(screen(page).getByText(hi("Sale amount"))).toBeVisible();
 
   // Still Hindi after a reload and on the login screen after logging out.
-  await page.goto("/setup");
+  await page.goto("/settings");
   await screen(page)
     .getByRole("button", { name: hi("Log out") })
     .click();

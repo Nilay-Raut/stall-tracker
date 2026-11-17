@@ -1,4 +1,6 @@
 import "server-only";
+import { plateCountsFromBills } from "@/domain/bill";
+import { takesSaleEntries } from "@/domain/entry";
 import { and, asc, desc, eq, gte, isNotNull, lt, lte } from "drizzle-orm";
 import type { CloseInput } from "@/domain/dayClose";
 import { type DayTotals, computeDayTotals } from "@/domain/dayTotals";
@@ -54,11 +56,13 @@ export type CloseContext = {
   plateItems: Array<{ id: string; name: string; price: number; cost: number }>;
   /** Plates counted at an earlier close of this day, by item id. */
   previousCounts: Record<string, number>;
+  /** Plates of each saved item on the day's bills, to fill in the counter (v2 Phase 3). */
+  billCounts: Record<string, number>;
 };
 
 /** Everything the close form needs for one day. */
 export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<CloseContext> {
-  const countsPlates = shop.salesMode === "totals_items";
+  const countsPlates = takesSaleEntries(shop.salesMode);
   const [entries, fixedCost, row, items, counts] = await Promise.all([
     getDayEntries(shop.id, date),
     fixedCostForDate(getDb(), shop.id, date),
@@ -83,6 +87,7 @@ export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<C
       cost: item.cost,
     })),
     previousCounts: Object.fromEntries(counts.map((c) => [c.itemId, c.quantity])),
+    billCounts: plateCountsFromBills(entries),
   };
 }
 

@@ -4,6 +4,7 @@ import type { Entry } from "@/domain/entry";
 import type { MaterialHint } from "@/domain/materials";
 import type { BusinessDate, Lang } from "@/lib/dates";
 import type { Paise } from "@/lib/money";
+import type { SalesMode } from "@/domain/entry";
 
 /**
  * Data kept on the phone (IndexedDB), so the app works without a network.
@@ -17,7 +18,7 @@ export type ShopSnapshot = {
   shopName: string;
   /** The language chosen in Setup (missing in snapshots stored before Phase 10). */
   language?: Lang;
-  salesMode: "totals" | "totals_items";
+  salesMode: SalesMode;
   /** The day the snapshot was made for, and that day's fixed cost. */
   date: BusinessDate;
   fixedCostPerDay: Paise;
@@ -34,6 +35,11 @@ export type ShopSnapshot = {
     plateItems: Array<{ id: string; name: string; price: Paise; cost: Paise }>;
     previousCounts: Record<string, number>;
   };
+  /** Items to tap on a bill, so billing works offline (v2 Phase 3). */
+  saleItems?: Array<{ id: string; name: string; price: Paise }>;
+  /** Brand colour "#rrggbb" (null = the app's green) and logo version (v2 Phase 2). */
+  accentColor?: string | null;
+  logoVersion?: number | null;
   /** Last rate of each material and known suppliers, for the expense form (Phase 7). */
   materials?: MaterialHint[];
   suppliers?: string[];

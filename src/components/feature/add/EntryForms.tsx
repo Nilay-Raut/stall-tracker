@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useShopSnapshot } from "@/client/localStore";
-import { Button } from "@/components/ui/Button";
 import { ChoiceGroup } from "@/components/ui/ChoiceGroup";
-import { FormError } from "@/components/ui/FormError";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import {
   EXPENSE_CATEGORIES,
@@ -18,10 +16,13 @@ import {
 import { useT } from "@/i18n/client";
 import type { BusinessDate } from "@/lib/dates";
 import { CATEGORY_LABELS, PAID_FROM_LABELS } from "@/lib/labels";
+import { cn } from "@/lib/cn";
 import { formatRupees, parseRupeeInput } from "@/lib/money";
 import { AddShell } from "./AddShell";
 import { Keypad, QuickAdd } from "./Keypad";
 import { MaterialDetails, draftToPurchase, emptyDraft } from "./MaterialDetails";
+import { BillPanel } from "./BillPanel";
+import { Footer, PaymentChoice } from "./FormParts";
 import { useEntryEditor } from "./useEntryEditor";
 
 export type FormProps = { existing: Entry | null; initialDate: BusinessDate; today: BusinessDate };
@@ -30,12 +31,19 @@ const rupeesText = (paise: number | undefined) => (paise ? String(paise / 100) :
 
 // ---------- Sale ----------
 
+/**
+ * Add / edit a sale: a bill of items (v2 Phase 3) or a quick amount on the keypad.
+ * "Bill each sale" shops start on the bill; an existing sale opens the way it was made.
+ */
 export function SaleForm({ existing, initialDate, today }: FormProps) {
   const t = useT();
+  const snapshot = useShopSnapshot();
   const editor = useEntryEditor(existing, initialDate);
-  const [digits, setDigits] = useState(rupeesText(existing?.amount));
-  const [mode, setMode] = useState<PaymentMode>(existing?.paymentMode ?? "cash");
-  const amount = Number(digits || 0) * 100;
+  const [payment, setPayment] = useState<PaymentMode>(existing?.paymentMode ?? "cash");
+  const [chosen, setChosen] = useState<"bill" | "quick" | null>(
+    existing ? (existing.lines ? "bill" : "quick") : null,
+  );
+  const how = chosen ?? (snapshot?.salesMode === "bills" ? "bill" : "quick");
 
   return (
     <AddShell
@@ -45,6 +53,60 @@ export function SaleForm({ existing, initialDate, today }: FormProps) {
       onDateChange={editor.setDate}
       editing={!!existing}
     >
+      <div
+        role="radiogroup"
+        aria-label={t("How to enter this sale")}
+        className="grid grid-cols-2 gap-1 self-center rounded-full bg-surface p-1"
+      >
+        {(["bill", "quick"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={how === value}
+            onClick={() => setChosen(value)}
+            className={cn(
+              "min-h-9 press rounded-full px-4 text-[13px]",
+              how === value ? "glass-soft font-bold text-ink" : "font-semibold text-muted",
+            )}
+          >
+            {value === "bill" ? t("Bill") : t("Quick amount")}
+          </button>
+        ))}
+      </div>
+      {how === "bill" ? (
+        <BillPanel
+          editor={editor}
+          existing={existing}
+          payment={payment}
+          onPayment={setPayment}
+          items={snapshot?.saleItems ?? snapshot?.close?.plateItems ?? []}
+          shopName={snapshot?.shopName ?? ""}
+        />
+      ) : (
+        <QuickSale editor={editor} existing={existing} payment={payment} onPayment={setPayment} />
+      )}
+    </AddShell>
+  );
+}
+
+function QuickSale({
+  editor,
+  existing,
+  payment,
+  onPayment,
+}: {
+  editor: ReturnType<typeof useEntryEditor>;
+  existing: Entry | null;
+  payment: PaymentMode;
+  onPayment: (mode: PaymentMode) => void;
+}) {
+  const t = useT();
+  // A bill switched to a quick amount keeps its total as the starting amount.
+  const [digits, setDigits] = useState(rupeesText(existing?.amount));
+  const amount = Number(digits || 0) * 100;
+  return (
+    <>
       <div className="flex flex-col items-center pt-1.5">
         <span className="text-[13px] text-muted">{t("Sale amount")}</span>
         <output aria-live="polite" className="font-display text-[52px] leading-tight font-bold">
@@ -52,35 +114,25 @@ export function SaleForm({ existing, initialDate, today }: FormProps) {
         </output>
       </div>
       <QuickAdd value={digits} onChange={setDigits} />
-      <div className="grid grid-cols-2 gap-2.5" role="radiogroup" aria-label={t("Paid by")}>
-        {(["cash", "upi"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={mode === m}
-            onClick={() => setMode(m)}
-            className={
-              mode === m
-                ? "h-14 rounded-card border-[1.5px] border-accent bg-accent text-[17px] font-bold text-accent-ink"
-                : "h-14 rounded-card border-[1.5px] border-ink bg-white text-[17px] font-bold"
-            }
-          >
-            {m === "cash" ? t("Cash") : "UPI"}
-          </button>
-        ))}
-      </div>
+      <PaymentChoice value={payment} onChange={onPayment} />
       <Keypad value={digits} onChange={setDigits} />
       <Footer
         editor={editor}
         canSave={amount > 0}
         label={t("Save sale")}
         onSave={() =>
-          editor.save({ type: "sale", amount, paymentMode: mode, category: null, paidFrom: null })
+          editor.save({
+            type: "sale",
+            amount,
+            paymentMode: payment,
+            category: null,
+            paidFrom: null,
+            lines: null,
+          })
         }
         editing={!!existing}
       />
-    </AddShell>
+    </>
   );
 }
 
@@ -225,36 +277,5 @@ export function CashOutForm({ existing, initialDate, today }: FormProps) {
         editing={!!existing}
       />
     </AddShell>
-  );
-}
-
-// ---------- Shared bottom ----------
-
-function Footer({
-  editor,
-  canSave,
-  label,
-  onSave,
-  editing,
-}: {
-  editor: ReturnType<typeof useEntryEditor>;
-  canSave: boolean;
-  label: string;
-  onSave: () => void;
-  editing: boolean;
-}) {
-  const t = useT();
-  return (
-    <div className="mt-auto flex flex-col gap-1.5 pt-2">
-      <FormError message={editor.error ?? undefined} />
-      <Button size="lg" disabled={!canSave || editor.busy} onClick={onSave}>
-        {label}
-      </Button>
-      {editing && (
-        <Button variant="ghost" disabled={editor.busy} onClick={() => void editor.remove()}>
-          {t("Delete entry")}
-        </Button>
-      )}
-    </div>
   );
 }

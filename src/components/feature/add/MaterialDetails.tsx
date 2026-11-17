@@ -71,7 +71,7 @@ export function MaterialDetails({ draft, onChange, amount, hints, suppliers, err
       : null;
 
   return (
-    <section className="flex flex-col gap-2.5 rounded-card border-[1.5px] border-dashed border-ink p-3">
+    <section className="flex flex-col gap-2.5 rounded-card border border-dashed border-edge p-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">{t("Material details")}</h2>
         <span className="text-xs text-muted">{t("Optional, for price tracking")}</span>

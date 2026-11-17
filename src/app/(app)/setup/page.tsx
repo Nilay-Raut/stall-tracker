@@ -1,17 +1,15 @@
 import { Suspense } from "react";
 import { SetupForm, type SetupValues } from "@/components/feature/setup/SetupForm";
 import { LogoutButton } from "@/components/feature/LogoutButton";
-import { ReminderToggle } from "@/components/feature/ReminderToggle";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { translator } from "@/i18n/translate";
 import { businessDate, daysInMonth } from "@/lib/dates";
 import { listItems } from "@/server/items";
-import { reminderPublicKey } from "@/server/reminders";
 import { getFixedCosts, getOwnShop } from "@/server/queries/shop";
 
-export const metadata = { title: "Settings" };
+export const metadata = { title: "Shop details" };
 
-/** First-run setup, and later the Settings screen (same form). */
+/** First-run setup, and later Settings > Shop details (same form). */
 export default function SetupPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 px-5 pt-3.5 pb-8">
@@ -52,7 +50,10 @@ async function SetupContent() {
   return (
     <>
       {shop ? (
-        <ScreenHeader title={t("Settings")} back={{ href: "/", label: t("Today") }} />
+        <ScreenHeader
+          title={t("Shop details")}
+          back={{ href: "/settings", label: t("Settings") }}
+        />
       ) : (
         <header className="flex flex-col gap-1 pt-2">
           <h1 className="font-display text-2xl font-bold">{t("Set up your shop")}</h1>
@@ -71,20 +72,8 @@ async function SetupContent() {
         itemCount={items ? items.length : null}
       />
 
-      {shop && (
-        <ReminderToggle
-          publicKey={reminderPublicKey()}
-          closingTime={formatClosing(shop.closingTime)}
-        />
-      )}
-
-      <LogoutButton />
+      {/* Before setup there is no Settings screen yet, so logging out lives here. */}
+      {!shop && <LogoutButton />}
     </>
   );
-}
-
-/** "22:00:00" -> "10:00 pm" */
-function formatClosing(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 }

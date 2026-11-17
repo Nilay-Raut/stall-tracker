@@ -12,11 +12,13 @@ import { Section, rangeLabel } from "./ReportView";
 // Phase 11 parts of the Reports screen. Server components: they get the shop's t().
 
 const SAME_AS: Record<Range["kind"], string> = {
+  today: msg("same as the same day last week"),
   week: msg("same as the week before"),
   month: msg("same as last month"),
   custom: msg("same as the period before"),
 };
 const WAS: Record<Range["kind"], string> = {
+  today: msg("was {share}% the same day last week"),
   week: msg("was {share}% the week before"),
   month: msg("was {share}% last month"),
   custom: msg("was {share}% the period before"),
@@ -44,7 +46,7 @@ export function MoneySplit({ range, report, t }: { range: Range; report: Report;
           })}
           className="mb-2 flex h-3 overflow-hidden rounded-full bg-track"
         >
-          <div className="h-full bg-ink" style={{ width: `${100 - profitShare}%` }} />
+          <div className="h-full bg-bar" style={{ width: `${100 - profitShare}%` }} />
           <div className="h-full bg-accent" style={{ width: `${profitShare}%` }} />
         </div>
       ) : (
@@ -74,7 +76,7 @@ export function MoneySplit({ range, report, t }: { range: Range; report: Report;
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-track">
               <div
-                className={cn("h-full", part.key === "profit" ? "bg-accent" : "bg-ink")}
+                className={cn("h-full", part.key === "profit" ? "bg-accent" : "bg-bar")}
                 style={{ width: `${Math.max(part.per100, 2)}%` }}
               />
             </div>
@@ -187,7 +189,7 @@ function CompareRow({
       <span
         className={cn(
           "text-right text-[13px] font-bold",
-          good === null ? "text-muted" : good ? "text-accent" : "text-danger",
+          good === null ? "text-muted" : good ? "text-accent-fg" : "text-danger",
         )}
       >
         {change.change !== 0 && <span aria-hidden>{up ? "▲ " : "▼ "}</span>}
@@ -240,7 +242,7 @@ export function OwnerTakeCard({
 /** Links at the end of Reports: month by month and sharing. */
 export function MoreLinks({ range, t }: { range: Range; t: Translate }) {
   return (
-    <section className="flex flex-col rounded-card border-[1.5px] border-ink print:hidden">
+    <section className="flex flex-col rounded-card border border-edge print:hidden">
       <Link
         href="/reports/months"
         className="flex min-h-13 items-center justify-between border-b border-line px-3.5"

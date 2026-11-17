@@ -13,6 +13,7 @@ function entry(partial: Partial<Entry> & Pick<Entry, "type" | "amount">): Entry 
     category: partial.type === "expense" ? "other" : null,
     paidFrom: partial.type === "expense" ? "drawer" : null,
     purchase: null,
+    lines: null,
     occurredAt: "2026-11-13T14:00:00.000Z",
     updatedAt: "2026-11-13T14:00:00.000Z",
     deleted: false,

@@ -1,10 +1,13 @@
 import type { Phrases } from "../translate";
 import { add } from "./add";
 import { analysis } from "./analysis";
+import { appearance } from "./appearance";
 import { auth } from "./auth";
+import { bills } from "./bills";
 import { calendar } from "./calendar";
 import { close } from "./close";
 import { common } from "./common";
+import { insights } from "./insights";
 import { errors } from "./errors";
 import { items } from "./items";
 import { reports } from "./reports";
@@ -29,4 +32,7 @@ export const PHRASES: Phrases[] = [
   auth,
   errors,
   analysis,
+  appearance,
+  bills,
+  insights,
 ];

@@ -10,12 +10,13 @@ import { type BusinessDate, formatDayLabel } from "@/lib/dates";
 import type { Paise } from "@/lib/money";
 import { DaySheet } from "./DaySheet";
 import { LoadingNote } from "./LoadingNote";
+import type { SalesMode } from "@/domain/entry";
 
 type Props = {
   date: BusinessDate;
   serverEntries: Entry[];
   fixedCost: Paise;
-  salesMode: "totals" | "totals_items";
+  salesMode: SalesMode;
   closedProfit: Paise | null;
 };
 

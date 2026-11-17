@@ -3,6 +3,7 @@
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { SALES_MODES } from "@/domain/entry";
 import { msg } from "@/i18n/translate";
 import { businessDate } from "@/lib/dates";
 import { parseRupeeInput } from "@/lib/money";
@@ -34,7 +35,7 @@ const setupSchema = z.object({
   language: z.enum(["en", "hi", "mr"]),
   closingTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, msg("Pick a closing time.")),
   openingCash: amount(msg("Enter the cash you start the day with."), { allowZero: true }),
-  salesMode: z.enum(["totals", "totals_items"]),
+  salesMode: z.enum(SALES_MODES),
   costs: z
     .array(
       z.object({

@@ -16,6 +16,7 @@ const e = (
   category: null,
   paidFrom: null,
   purchase: null,
+  lines: null,
   occurredAt: "2026-11-13T10:00:00.000Z",
   updatedAt,
   deleted,

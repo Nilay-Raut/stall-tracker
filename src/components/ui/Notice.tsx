@@ -5,7 +5,7 @@ export function Notice({ title, children }: { title: ReactNode; children?: React
   return (
     <div
       role="status"
-      className="flex flex-col gap-0.5 rounded-control bg-warn-bg px-2.5 py-2 text-warn-ink"
+      className="flex flex-col gap-0.5 rounded-control border border-warn-ink/15 bg-warn-bg px-3 py-2.5 text-warn-ink"
     >
       <span className="text-sm font-bold">{title}</span>
       {children && <span className="text-xs">{children}</span>}

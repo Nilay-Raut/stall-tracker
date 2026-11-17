@@ -23,8 +23,8 @@ export function PasswordField({ label, hint, error, id, name, className, ...prop
       </label>
       <div
         className={cn(
-          "flex h-12 items-center rounded-control border-[1.5px] bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
-          error ? "border-danger" : "border-ink",
+          "flex h-12 items-center rounded-control border bg-field focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
+          error ? "border-danger" : "border-edge",
         )}
       >
         <input

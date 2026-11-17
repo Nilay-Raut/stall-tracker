@@ -61,8 +61,8 @@ async function PricesContent({ searchParams }: Pick<PageProps<"/reports/prices">
             href={`/reports/prices?material=${m.id}`}
             aria-current={m.id === material.id ? "page" : undefined}
             className={cn(
-              "flex min-h-11 shrink-0 items-center rounded-control border-[1.5px] border-ink px-4 text-[13px]",
-              m.id === material.id ? "bg-ink font-bold text-white" : "font-semibold",
+              "flex min-h-11 shrink-0 items-center rounded-control border border-edge px-4 text-[13px]",
+              m.id === material.id ? "bg-ink font-bold text-paper" : "font-semibold",
             )}
           >
             {m.name}

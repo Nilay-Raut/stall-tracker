@@ -13,7 +13,7 @@ export function FormError({ message }: { message?: string }) {
       {message && (
         <p
           role="alert"
-          className="rounded-control border-[1.5px] border-danger px-3 py-2 text-sm font-semibold text-danger"
+          className="rounded-control border border-danger px-3 py-2 text-sm font-semibold text-danger"
         >
           {t(message)}
         </p>

@@ -4,6 +4,18 @@ import { datesBetween, dayCount, resolveRange } from "./ranges";
 const today = "2026-11-13";
 
 describe("resolveRange", () => {
+  it("today: compared with the same weekday last week", () => {
+    expect(resolveRange("today", "2026-11-18")).toEqual({
+      kind: "today",
+      from: "2026-11-18",
+      to: "2026-11-18",
+      previousFrom: "2026-11-11",
+      previousTo: "2026-11-11",
+      compareFrom: "2026-11-11",
+      compareTo: "2026-11-11",
+    });
+  });
+
   it("month: this month so far, compared with all of last month", () => {
     expect(resolveRange("month", today)).toEqual({
       kind: "month",

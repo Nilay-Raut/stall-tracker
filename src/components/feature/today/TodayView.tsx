@@ -12,7 +12,7 @@ import { Notice } from "@/components/ui/Notice";
 import { computeClose } from "@/domain/dayClose";
 import { useLang, useT } from "@/i18n/client";
 import { computeDayTotals } from "@/domain/dayTotals";
-import { businessTime, formatDayLabel } from "@/lib/dates";
+import { businessTime, formatClock, formatDayLabel } from "@/lib/dates";
 import { ENTRY_PATHS } from "@/lib/labels";
 import { SyncLine } from "./SyncLine";
 
@@ -42,20 +42,13 @@ export function TodayView() {
     if (shopLoaded) storeOfflineScreens();
   }, [shopLoaded]);
 
+  // Shop name and Settings now live in the app bar and the tab bar.
   const header = (
-    <header className="flex min-h-12 items-center justify-between">
-      <div className="flex flex-col">
-        <span className="min-h-5 text-[13px] text-muted">{snapshot?.shopName}</span>
-        <h1 className="font-display text-2xl font-bold">
-          {today ? formatDayLabel(today, lang) : t("Today")}
-        </h1>
-      </div>
-      <AppLink
-        href="/setup"
-        className="flex min-h-11 items-center rounded-control border-[1.5px] border-ink px-3 text-[13px] font-semibold"
-      >
-        {t("Settings")}
-      </AppLink>
+    <header className="flex min-h-12 flex-col justify-center px-1">
+      <span className="text-[13px] font-semibold text-muted">{t("Today")}</span>
+      <h1 className="font-display text-[26px] leading-tight font-bold">
+        {today ? formatDayLabel(today, lang) : t("Today")}
+      </h1>
     </header>
   );
 
@@ -141,10 +134,4 @@ function useClock(): string {
     return () => clearInterval(timer);
   }, []);
   return now;
-}
-
-/** "22:00" -> "10:00 pm" */
-function formatClock(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 }

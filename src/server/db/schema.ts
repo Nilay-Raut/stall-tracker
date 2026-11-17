@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -67,7 +68,7 @@ export const authAttempts = pgTable(
 // ---------- Shop ----------
 
 export const language = pgEnum("language", ["en", "hi", "mr"]);
-export const salesMode = pgEnum("sales_mode", ["totals", "totals_items"]);
+export const salesMode = pgEnum("sales_mode", ["totals", "totals_items", "bills"]);
 
 export const shops = pgTable(
   "shops",
@@ -85,10 +86,40 @@ export const shops = pgTable(
     salesMode: salesMode("sales_mode").notNull().default("totals_items"),
     reminderEnabled: boolean("reminder_enabled").notNull().default(false),
     lastReminderDate: date("last_reminder_date"),
+    /** Brand colour chosen in Settings, "#rrggbb" (lower case). Null = the app's green. */
+    accentColor: text("accent_color"),
     createdAt,
     updatedAt,
   },
-  (t) => [check("shops_opening_cash_non_negative", sql`${t.defaultOpeningCash} >= 0`)],
+  (t) => [
+    check("shops_opening_cash_non_negative", sql`${t.defaultOpeningCash} >= 0`),
+    check("shops_accent_color_hex", sql`${t.accentColor} ~ '^#[0-9a-f]{6}$'`),
+  ],
+);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+/**
+ * The shop's logo (docs/PLAN-v2.md, Phase 2): a small square image made on the
+ * phone, checked again on the server. Kept in its own table so shop reads stay light.
+ */
+export const shopLogos = pgTable(
+  "shop_logos",
+  {
+    shopId: uuid("shop_id")
+      .primaryKey()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    /** image/webp, image/png or image/jpeg (checked against the file's own bytes). */
+    mime: text("mime").notNull(),
+    bytes: bytea("bytes").notNull(),
+    updatedAt,
+  },
+  (t) => [
+    check("shop_logos_mime", sql`${t.mime} in ('image/webp', 'image/png', 'image/jpeg')`),
+    check("shop_logos_size", sql`octet_length(${t.bytes}) <= 102400`),
+  ],
 );
 
 export const fixedCosts = pgTable(
@@ -238,6 +269,41 @@ export const dayItemCounts = pgTable(
   (t) => [
     primaryKey({ columns: [t.shopId, t.businessDate, t.itemId] }),
     check("day_item_counts_quantity_positive", sql`${t.quantity} > 0`),
+  ],
+);
+
+// ---------- Bills (v2 Phase 3) ----------
+
+/**
+ * The items on a sale's bill. Replaced whole whenever the sale changes. Price is
+ * what the customer paid; cost is the item's cost at that time (null for custom
+ * items), so later price changes do not rewrite history (as rule 11).
+ */
+export const saleLines = pgTable(
+  "sale_lines",
+  {
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => entries.id, { onDelete: "cascade" }),
+    lineNo: integer("line_no").notNull(),
+    shopId: uuid("shop_id")
+      .notNull()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    /** Null for a custom item typed on the bill. */
+    itemId: uuid("item_id").references(() => items.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    /** Lower-case name, so custom "Chai" and "chai " group together in reports. */
+    nameKey: text("name_key").notNull(),
+    unitPrice: integer("unit_price").notNull(),
+    quantity: integer("quantity").notNull(),
+    costAtTime: integer("cost_at_time"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.entryId, t.lineNo] }),
+    index("sale_lines_shop_item_idx").on(t.shopId, t.itemId),
+    index("sale_lines_shop_name_idx").on(t.shopId, t.nameKey),
+    check("sale_lines_price_positive", sql`${t.unitPrice} > 0`),
+    check("sale_lines_quantity_range", sql`${t.quantity} between 1 and 999`),
   ],
 );
 

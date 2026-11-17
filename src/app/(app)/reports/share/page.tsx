@@ -37,7 +37,9 @@ async function ShareContent({ searchParams }: Pick<PageProps<"/reports/share">, 
   return (
     <>
       <p className="text-sm">
-        {t("Period: {period}. Change it on Reports with Week, Month or Custom.", { period })}
+        {t("Period: {period}. Change it on Reports with Today, Week, Month or Custom.", {
+          period,
+        })}
       </p>
 
       <section className="flex flex-col gap-2">
@@ -51,6 +53,11 @@ async function ShareContent({ searchParams }: Pick<PageProps<"/reports/share">, 
           url={`/api/export/entries?${q}`}
           fileName={file("entries")}
           label={t("Every entry (CSV)")}
+        />
+        <ShareFile
+          url={`/api/export/bills?${q}`}
+          fileName={file("bills")}
+          label={t("Every item on every bill (CSV)")}
         />
         <p className="text-xs text-muted">
           {t("CSV files open in Excel, Google Sheets and WhatsApp.")}

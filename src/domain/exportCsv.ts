@@ -104,3 +104,38 @@ export function entriesCsv(list: CsvEntry[], lang: Lang = "en", t: Translate = e
   ]);
   return toCsv(header, rows);
 }
+
+export type CsvBillLine = {
+  date: string;
+  occurredAt: Date;
+  billId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  paymentMode: PaymentMode | null;
+};
+
+/** One row per item on a bill (v2 Phase 4). Rows of one bill share its short number. */
+export function billsCsv(list: CsvBillLine[], lang: Lang = "en", t: Translate = english): string {
+  const header = [
+    t("Date"),
+    t("Time"),
+    t("Bill"),
+    t("Item"),
+    t("Quantity"),
+    t("Price"),
+    t("Amount"),
+    t("Payment"),
+  ];
+  const rows: Cell[][] = list.map((l) => [
+    l.date,
+    formatTime(l.occurredAt.toISOString(), lang),
+    l.billId.slice(0, 8),
+    l.name,
+    l.quantity,
+    rupeesCell(l.unitPrice),
+    rupeesCell(l.unitPrice * l.quantity),
+    l.paymentMode ? t(PAYMENT_LABELS[l.paymentMode]) : null,
+  ]);
+  return toCsv(header, rows);
+}

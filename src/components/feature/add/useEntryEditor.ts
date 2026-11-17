@@ -12,6 +12,7 @@ import type { Paise } from "@/lib/money";
 type Details = Pick<Entry, "type" | "paymentMode" | "category" | "paidFrom"> & {
   amount: Paise;
   purchase?: Entry["purchase"];
+  lines?: Entry["lines"];
 };
 
 /**
@@ -60,6 +61,7 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
         updatedAt: now,
         deleted: false,
         purchase: null,
+        lines: null,
         ...details,
       }),
     );

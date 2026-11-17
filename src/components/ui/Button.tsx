@@ -9,13 +9,15 @@ type Size = "md" | "lg";
 type StyleProps = { variant?: Variant; size?: Size; className?: string };
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-semibold no-underline transition-opacity " +
-  "disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40";
+  "press inline-flex items-center justify-center gap-2 font-semibold no-underline " +
+  "disabled:opacity-40 disabled:active:scale-100 aria-disabled:pointer-events-none aria-disabled:opacity-40";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink font-bold",
-  outline: "border-[1.5px] border-ink bg-white text-ink",
-  dashed: "border-[1.5px] border-dashed border-ink bg-white text-ink",
+  primary:
+    "bg-accent text-accent-ink font-bold shadow-lift " +
+    "bg-[linear-gradient(180deg,rgb(255_255_255/0.16),transparent)]",
+  outline: "glass-soft text-ink",
+  dashed: "border border-dashed border-edge bg-surface text-ink",
   ghost: "bg-transparent text-ink underline",
 };
 
