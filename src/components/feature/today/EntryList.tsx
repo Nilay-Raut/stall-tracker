@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/dates";
 import { ENTRY_PATHS, describeEntry } from "@/lib/labels";
 import { formatSignedRupees } from "@/lib/money";
+import { providerName } from "@/lib/paymentProviders";
 import { ENTRY_ICON_MASKS } from "./entryIcons";
 
 const REFUSAL_TEXT: Record<string, string> = {
@@ -76,6 +77,7 @@ export function EntryList({ title, entries, pending }: Props) {
                 )}
                 <span className="text-xs text-muted">
                   {formatTime(entry.occurredAt, lang)} · {note}
+                  {entry.paidVia && ` · ${providerName(entry.paidVia)}`}
                   {change && !change.error && ` · ${t("not sent yet")}`}
                 </span>
               </span>

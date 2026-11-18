@@ -1,6 +1,6 @@
 // Prints new values for the server secrets it is asked for, as KEY=value lines.
 // Used by deploy/deploy.sh on the server for secrets missing from /opt/stall/.env:
-//   node tools/scripts/generate-secrets.mjs CRON_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY
+//   node tools/scripts/generate-secrets.mjs CRON_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY PAYMENTS_KEY
 // No packages needed: Node's own crypto makes the Web Push (VAPID) key pair.
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 
@@ -9,6 +9,12 @@ const lines = [];
 
 if (wanted.has("CRON_SECRET")) {
   lines.push(`CRON_SECRET=${randomBytes(32).toString("hex")}`);
+}
+
+// Key that encrypts each shop's payment provider secrets (PhonePe salt key ...).
+// Losing it means owners must reconnect their payments; it never leaves the server.
+if (wanted.has("PAYMENTS_KEY")) {
+  lines.push(`PAYMENTS_KEY=${randomBytes(32).toString("base64url")}`);
 }
 
 if (wanted.has("VAPID_PUBLIC_KEY") || wanted.has("VAPID_PRIVATE_KEY")) {

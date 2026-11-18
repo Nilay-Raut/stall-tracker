@@ -71,6 +71,13 @@
       "when": 1794943873473,
       "tag": "0009_sale_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794983745385,
+      "tag": "0010_payments",
+      "breakpoints": true
     }
   ]
 }

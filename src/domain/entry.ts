@@ -50,6 +50,11 @@ export type Entry = {
   purchase: Purchase | null;
   /** Sales only, optional: the bill's items (v2 Phase 3). The amount is their total. */
   lines: SaleLine[] | null;
+  /**
+   * Set by the server only: the payment provider that confirmed this sale ("phonepe").
+   * Phones may send it back; the server never takes it from them (Phase 12).
+   */
+  paidVia?: string | null;
   /** When it happened (ISO time), for the time shown in the list. */
   occurredAt: string;
   /** When it was last changed on the phone (ISO time). The latest change wins. */
@@ -115,6 +120,7 @@ export const entrySchema = z
     purchase: purchaseSchema.nullable().default(null),
     // Phones from before v2 send no lines at all: treat that as a plain sale.
     lines: z.array(saleLineSchema).min(1).max(MAX_BILL_LINES).nullable().default(null),
+    paidVia: z.string().max(20).nullable().default(null),
     occurredAt: isoTime,
     updatedAt: isoTime,
     deleted: z.boolean(),

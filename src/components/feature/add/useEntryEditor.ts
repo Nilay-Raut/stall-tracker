@@ -62,6 +62,7 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
         deleted: false,
         purchase: null,
         lines: null,
+        paidVia: existing?.paidVia ?? null,
         ...details,
       }),
     );

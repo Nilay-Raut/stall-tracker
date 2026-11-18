@@ -40,7 +40,15 @@ export function CloseForm({ context, action = closeDay, waitForEntries = true }:
   const [opening, setOpening] = useState(toText(context.openingCash));
   const [editOpening, setEditOpening] = useState(false);
   const [counted, setCounted] = useState(toText(previous?.countedCash));
-  const [upi, setUpi] = useState(toText(previous?.upiTotal));
+  // With a payment app connected, the UPI sales it added are the starting total.
+  const [upi, setUpi] = useState(
+    toText(
+      previous?.upiTotal ??
+        (context.paymentsConnected && context.entered.upiSales > 0
+          ? context.entered.upiSales
+          : null),
+    ),
+  );
   const [waste, setWaste] = useState(toText(previous?.waste));
 
   const countsPlates = context.plateItems.length > 0;
@@ -320,6 +328,9 @@ function CashCheck({ context, cashSales }: { context: CloseContext; cashSales: n
 }
 
 function upiHint(context: CloseContext, upi: number | null, t: Translate): string {
+  if (context.paymentsConnected) {
+    return t("Filled in from PhonePe and your UPI entries. Check it against the PhonePe app.");
+  }
   if (context.upiSaleCount === 0) return t("Check today's total in your payment app.");
   const n = context.upiSaleCount;
   const entries = n === 1 ? t("{n} UPI entry", { n }) : t("{n} UPI entries", { n });

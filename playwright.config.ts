@@ -56,6 +56,7 @@ function testSecrets(): Record<string, string> {
     const lines = execFileSync(process.execPath, [
       "scripts/generate-secrets.mjs",
       "CRON_SECRET",
+      "PAYMENTS_KEY",
       "VAPID_PUBLIC_KEY",
     ])
       .toString()
@@ -68,6 +69,7 @@ function testSecrets(): Record<string, string> {
   }
   return {
     CRON_SECRET: process.env.E2E_CRON_SECRET!,
+    PAYMENTS_KEY: process.env.E2E_PAYMENTS_KEY!,
     VAPID_PUBLIC_KEY: process.env.E2E_VAPID_PUBLIC_KEY!,
     VAPID_PRIVATE_KEY: process.env.E2E_VAPID_PRIVATE_KEY!,
   };

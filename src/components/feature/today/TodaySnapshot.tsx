@@ -4,6 +4,8 @@ import { getDb } from "@/server/db/client";
 import { fixedCostForDate, getDayEntries } from "@/server/entries";
 import { logoVersion } from "@/server/brand";
 import { listItems } from "@/server/items";
+import { isConnected, listConnections } from "@/server/payments/connections";
+import { paymentsAvailable } from "@/server/payments/secretBox";
 import { getPurchaseHints } from "@/server/purchases";
 import { requireShop } from "@/server/queries/shop";
 import { dailySalesTarget } from "@/server/target";
@@ -28,6 +30,7 @@ export async function TodaySnapshot() {
       logoVersion(shop.id),
       listItems(shop.id),
     ]);
+  const connections = paymentsAvailable() ? await listConnections(shop.id) : [];
 
   return (
     <SnapshotLoader
@@ -42,6 +45,7 @@ export async function TodaySnapshot() {
         dailyTarget,
         closingTime: shop.closingTime.slice(0, 5),
         accentColor: shop.accentColor,
+        paymentsConnected: connections.some(isConnected),
         saleItems: items.map((item) => ({ id: item.id, name: item.name, price: item.price })),
         logoVersion: logo,
         close: {
@@ -49,6 +53,7 @@ export async function TodaySnapshot() {
           previous: close.previousClose,
           plateItems: close.plateItems,
           previousCounts: close.previousCounts,
+          paymentsConnected: close.paymentsConnected,
         },
         materials: hints.materials,
         suppliers: hints.suppliers,

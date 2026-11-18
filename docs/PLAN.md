@@ -314,6 +314,13 @@ Personal UPI apps have no way for other apps to read payments. PhonePe offers it
 - Day close fills UPI from these and the owner adjusts.
 - Fallback for days the callback missed: import PhonePe's transaction report (needs a sample file from the owner to match the format).
   Done when: signed test callbacks (and repeats) create exactly one entry each, unsigned ones none; and one real payment shows up on Today within a minute.
+  Status (18 Nov 2026): built, except the last check, which needs real PhonePe credentials.
+  - Provider-neutral: `src/server/payments/providers/` holds one file per provider (PhonePe now) behind a small `PaymentProvider` interface (fields to fill in, signature check, signed sample). Storage, matching, Settings and the callback route are shared, so another gateway is one new file.
+  - Settings > UPI payments > PhonePe, four steps: get the secret callback address; copy the ready-made request to PhonePe; paste Merchant ID, salt key, salt index; "Send a test" (a signed ₹1 sample through the same checks, adds no sale). Secrets and the address are encrypted with `PAYMENTS_KEY` (AES-256-GCM); only the token's hash is looked up; the token is masked in error logs.
+  - `POST /api/payments/phonepe/<token>`: X-VERIFY = SHA256(response + salt key) + "###" + salt index, merchant id must match, success only for code PAYMENT_SUCCESS with paymentState COMPLETED; failed and cancelled are kept but add no sale; pending is acknowledged and ignored. Each transaction id is kept once, so retries change nothing.
+  - Counting once with bills: a payment attaches to a typed UPI sale of the same amount within 15 minutes; otherwise it makes its own sale, which a UPI sale typed later (e.g. a bill) replaces.
+  - Today refreshes every 30 s while a payment app is connected; sales show "UPI · PhonePe"; day close starts the UPI total from them.
+  - Not built yet: the statement-file fallback (needs a sample PhonePe report) and polling PhonePe's status API for missed callbacks.
 
 ---
 

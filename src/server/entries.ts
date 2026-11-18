@@ -9,6 +9,7 @@ import { type BusinessDate, businessDate, daysInMonth } from "@/lib/dates";
 import { type Db, type Tx, getDb } from "@/server/db/client";
 import { type DayRow, type EntryRow, days, entries, fixedCosts } from "@/server/db/schema";
 import { deletePurchase, purchasesFor, savePurchase } from "@/server/purchases";
+import { takeOverAutoSale } from "@/server/payments/receive";
 import { deleteLines, linesFor, saveLines } from "@/server/saleLines";
 
 export function toEntry(
@@ -26,6 +27,7 @@ export function toEntry(
     paidFrom: row.paidFrom,
     purchase,
     lines,
+    paidVia: row.paidVia,
     occurredAt: row.occurredAt.toISOString(),
     updatedAt: row.clientUpdatedAt.toISOString(),
     deleted: row.deletedAt !== null,
@@ -228,6 +230,21 @@ export async function applyEntryChanges(
         await savePurchase(tx, shopId, change.id, change.purchase, change.amount);
       } else {
         await deletePurchase(tx, change.id);
+      }
+      // A new UPI sale typed after the payment already made its own sale: count it once.
+      if (!current && change.type === "sale" && change.paymentMode === "upi" && !change.deleted) {
+        const taken = await takeOverAutoSale(tx, shopId, {
+          id: change.id,
+          amount: change.amount,
+          occurredAt: new Date(change.occurredAt),
+        });
+        if (taken) {
+          await tx
+            .update(entries)
+            .set({ paidVia: taken.provider })
+            .where(eq(entries.id, change.id));
+          touchedDates.add(taken.removedFrom);
+        }
       }
       // A deleted sale keeps its lines out of item reports.
       if (change.type === "sale" && change.lines && !change.deleted) {

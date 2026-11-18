@@ -7,6 +7,7 @@ import {
   customType,
   date,
   index,
+  jsonb,
   integer,
   pgEnum,
   pgTable,
@@ -172,6 +173,8 @@ export const entries = pgTable(
     /** Phone time of the last change. The latest change wins. */
     clientUpdatedAt: timestamp("client_updated_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /** Sales confirmed by a payment provider ("phonepe"), set by the server only (Phase 12). */
+    paidVia: text("paid_via"),
     createdAt,
     updatedAt,
   },
@@ -406,9 +409,75 @@ export const pushSubscriptions = pgTable(
   (t) => [index("push_subscriptions_shop_idx").on(t.shopId)],
 );
 
+// ---------- Payment providers (Phase 12) ----------
+
+/**
+ * A shop's link to a payment provider (PhonePe now; others later). Secrets are
+ * encrypted with PAYMENTS_KEY. The provider calls /api/payments/<provider>/<token>;
+ * only the token's hash is used to find the shop.
+ */
+export const paymentConnections = pgTable(
+  "payment_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shopId: uuid("shop_id")
+      .notNull()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    /** "phonepe" (see src/server/payments/providers). */
+    provider: text("provider").notNull(),
+    /** The provider's id for the shop (PhonePe Merchant ID). Not secret. */
+    accountId: text("account_id").notNull(),
+    /** Encrypted JSON of the provider's secret fields (PhonePe salt key and index). */
+    secrets: text("secrets").notNull(),
+    callbackTokenHash: text("callback_token_hash").notNull().unique(),
+    /** Encrypted, so Settings can show the callback address again. */
+    callbackToken: text("callback_token").notNull(),
+    lastEventAt: timestamp("last_event_at", { withTimezone: true }),
+    lastTestAt: timestamp("last_test_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [uniqueIndex("payment_connections_shop_provider_idx").on(t.shopId, t.provider)],
+);
+
+export const paymentEventStatus = pgEnum("payment_event_status", [
+  "success",
+  "failed",
+  "cancelled",
+  "test",
+]);
+
+/** Every signed payment notice, kept once per provider transaction (retries are ignored). */
+export const paymentEvents = pgTable(
+  "payment_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shopId: uuid("shop_id")
+      .notNull()
+      .references(() => shops.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    /** The provider's transaction id (PhonePe transactionId). */
+    reference: text("reference").notNull(),
+    status: paymentEventStatus("status").notNull(),
+    amount: integer("amount").notNull(),
+    paidAt: timestamp("paid_at", { withTimezone: true }).notNull(),
+    /** The sale this payment is, if any. */
+    entryId: uuid("entry_id").references(() => entries.id, { onDelete: "set null" }),
+    /** True when the server made the sale itself (no matching sale on the phone yet). */
+    autoCreated: boolean("auto_created").notNull().default(false),
+    payload: jsonb("payload").notNull(),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex("payment_events_reference_idx").on(t.shopId, t.provider, t.reference),
+    index("payment_events_entry_idx").on(t.entryId),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type Shop = typeof shops.$inferSelect;
 export type FixedCost = typeof fixedCosts.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type DayRow = typeof days.$inferSelect;
 export type Item = typeof items.$inferSelect;
+export type PaymentConnection = typeof paymentConnections.$inferSelect;

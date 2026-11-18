@@ -2,6 +2,7 @@ import {
   ChevronRight,
   type LucideIcon,
   Palette,
+  Smartphone,
   Store,
   Target,
   UtensilsCrossed,
@@ -14,7 +15,10 @@ import { ReminderToggle } from "@/components/feature/ReminderToggle";
 import { ShopMark } from "@/components/ui/AppBar";
 import { type Translate, translator } from "@/i18n/translate";
 import { formatClock } from "@/lib/dates";
+import { providerName } from "@/lib/paymentProviders";
 import { listItems } from "@/server/items";
+import { isConnected, listConnections } from "@/server/payments/connections";
+import { paymentsAvailable } from "@/server/payments/secretBox";
 import { requireShop } from "@/server/queries/shop";
 import { reminderPublicKey } from "@/server/reminders";
 
@@ -32,7 +36,11 @@ export default function SettingsPage() {
 async function SettingsContent() {
   const shop = await requireShop();
   const t = translator(shop.language);
-  const items = await listItems(shop.id);
+  const [items, connections] = await Promise.all([
+    listItems(shop.id),
+    paymentsAvailable() ? listConnections(shop.id) : [],
+  ]);
+  const connectedNames = connections.filter(isConnected).map((c) => providerName(c.provider));
   const activeItems = items.filter((item) => item.active).length;
 
   return (
@@ -64,6 +72,16 @@ async function SettingsContent() {
           icon={UtensilsCrossed}
           title={t("Items and margins")}
           note={itemsNote(activeItems, t)}
+        />
+        <Row
+          href="/settings/payments"
+          icon={Smartphone}
+          title={t("UPI payments")}
+          note={
+            connectedNames.length
+              ? t("{names} connected", { names: connectedNames.join(", ") })
+              : t("Add UPI payments as sales by themselves")
+          }
         />
         <Row
           href="/settings/target"

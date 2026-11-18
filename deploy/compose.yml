@@ -42,6 +42,8 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # Encrypts payment provider secrets (PhonePe); created on the server by deploy.sh.
+      PAYMENTS_KEY: ${PAYMENTS_KEY:-}
     depends_on:
       db: { condition: service_healthy }
     mem_limit: 448m

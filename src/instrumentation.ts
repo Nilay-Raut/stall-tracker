@@ -22,7 +22,8 @@ export const onRequestError: Instrumentation.onRequestError = (error, request, c
       time: new Date().toISOString(),
       digest,
       method: request.method,
-      path: request.path.split("?")[0],
+      // Payment callback addresses carry a shop's secret token: never log it.
+      path: request.path.split("?")[0].replace(/^(\/api\/payments\/[^/]+\/)[^/]+/, "$1…"),
       route: context.routePath,
       type: context.routeType,
       ...details,

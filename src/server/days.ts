@@ -8,6 +8,8 @@ import type { PlateCount } from "@/domain/plates";
 import type { Month } from "@/lib/calendar";
 import { type BusinessDate, daysInMonth, shiftDate } from "@/lib/dates";
 import { getDb } from "@/server/db/client";
+import { isConnected, listConnections } from "@/server/payments/connections";
+import { paymentsAvailable } from "@/server/payments/secretBox";
 import { type DayRow, type Shop, days } from "@/server/db/schema";
 import { closeInputsOf, fixedCostForDate, getDayEntries, recomputeDay } from "@/server/entries";
 import { getDayCounts, listItems, replaceDayCounts } from "@/server/items";
@@ -58,17 +60,20 @@ export type CloseContext = {
   previousCounts: Record<string, number>;
   /** Plates of each saved item on the day's bills, to fill in the counter (v2 Phase 3). */
   billCounts: Record<string, number>;
+  /** A payment app adds UPI sales by itself: the UPI total starts from them (Phase 12). */
+  paymentsConnected: boolean;
 };
 
 /** Everything the close form needs for one day. */
 export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<CloseContext> {
   const countsPlates = takesSaleEntries(shop.salesMode);
-  const [entries, fixedCost, row, items, counts] = await Promise.all([
+  const [entries, fixedCost, row, items, counts, connections] = await Promise.all([
     getDayEntries(shop.id, date),
     fixedCostForDate(getDb(), shop.id, date),
     dayRow(shop.id, date),
     countsPlates ? listItems(shop.id) : [],
     countsPlates ? getDayCounts(shop.id, date) : [],
+    paymentsAvailable() ? listConnections(shop.id) : [],
   ]);
   const previousClose = closeInputsOf(row);
   const sales = entries.filter((e) => e.type === "sale");
@@ -88,6 +93,7 @@ export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<C
     })),
     previousCounts: Object.fromEntries(counts.map((c) => [c.itemId, c.quantity])),
     billCounts: plateCountsFromBills(entries),
+    paymentsConnected: connections.some(isConnected),
   };
 }
 

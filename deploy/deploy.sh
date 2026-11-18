@@ -45,12 +45,12 @@ fi
 
 # Secrets made on the server the first time they are needed (they never leave it).
 missing=()
-for key in CRON_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY; do
+for key in CRON_SECRET VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY PAYMENTS_KEY; do
   grep -q "^${key}=." .env || missing+=("$key")
 done
 if (( ${#missing[@]} )); then
   log "Creating server secrets: ${missing[*]}"
-  sed -i "/^\(CRON_SECRET\|VAPID_PUBLIC_KEY\|VAPID_PRIVATE_KEY\)=$/d" .env
+  sed -i "/^\(CRON_SECRET\|VAPID_PUBLIC_KEY\|VAPID_PRIVATE_KEY\|PAYMENTS_KEY\)=$/d" .env
   docker run --rm "$IMAGE" node tools/scripts/generate-secrets.mjs "${missing[@]}" >> .env
 fi
 

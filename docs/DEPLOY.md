@@ -175,6 +175,14 @@ All of these run in a Session Manager window on the server (step 6). Start with 
 
 **Going back to an older version:** in GitHub Actions, open the run of the older commit and choose **Re-run jobs**. Images for the last 5 deploys are kept. Database migrations are not undone, so every migration must keep working with the previous app version (add columns, do not rename or drop them in the same release).
 
+## UPI payments from PhonePe
+
+Owners connect PhonePe themselves in **Settings > UPI payments** (the app walks them through it). The server needs one secret for this, `PAYMENTS_KEY`, which encrypts each shop's PhonePe salt key. `deploy.sh` creates it in `/opt/stall/.env` on the first deploy that needs it, like the reminder keys; nothing to do by hand.
+
+- Keep `/opt/stall/.env` in your backups: without `PAYMENTS_KEY`, saved PhonePe details can no longer be read and owners must connect again.
+- PhonePe calls `https://<your-cloudfront-address>/api/payments/phonepe/<secret>`; CloudFront already allows POST to `/api/*`, so no change is needed there.
+- Each notice is logged as one line (`"event":"payment-notice"`, with the outcome) in `docker compose logs app`; the secret part of the address is never logged.
+
 ## Changing the server size
 
 Between `t4g.micro` and `t4g.small`: **CloudFormation > stall-tracker > Update > Use current template**, change **InstanceType**, and submit. AWS stops the server, resizes it and starts it again on the same disk, so data stays. The app is offline for a few minutes.

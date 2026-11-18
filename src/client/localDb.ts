@@ -34,7 +34,10 @@ export type ShopSnapshot = {
     previous: CloseInput | null;
     plateItems: Array<{ id: string; name: string; price: Paise; cost: Paise }>;
     previousCounts: Record<string, number>;
+    paymentsConnected?: boolean;
   };
+  /** A payment app (PhonePe) adds UPI sales by itself (Phase 12): Today refreshes often. */
+  paymentsConnected?: boolean;
   /** Items to tap on a bill, so billing works offline (v2 Phase 3). */
   saleItems?: Array<{ id: string; name: string; price: Paise }>;
   /** Brand colour "#rrggbb" (null = the app's green) and logo version (v2 Phase 2). */

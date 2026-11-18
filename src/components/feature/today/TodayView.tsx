@@ -37,6 +37,16 @@ export function TodayView() {
   }, [router]);
 
   // Logged in with the shop loaded: have the service worker keep the plain screens ready.
+  // A payment app adds UPI sales on the server: fetch them while Today is open.
+  const polls = !!snapshot?.paymentsConnected;
+  useEffect(() => {
+    if (!polls) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) router.refresh();
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [polls, router]);
+
   const shopLoaded = !!snapshot;
   useEffect(() => {
     if (shopLoaded) storeOfflineScreens();

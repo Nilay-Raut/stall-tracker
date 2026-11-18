@@ -14,6 +14,8 @@ const serverEnvSchema = z.object({
   VAPID_SUBJECT: optional(z.string()),
   /** Shared secret for the server's own scheduled job calling /api/cron/reminders. */
   CRON_SECRET: optional(z.string().min(32)),
+  /** 32 random bytes (base64url) that encrypt payment provider secrets. Without it, payments are off. */
+  PAYMENTS_KEY: optional(z.string().min(40)),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

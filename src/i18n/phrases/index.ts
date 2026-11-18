@@ -10,6 +10,7 @@ import { common } from "./common";
 import { insights } from "./insights";
 import { errors } from "./errors";
 import { items } from "./items";
+import { payments } from "./payments";
 import { reports } from "./reports";
 import { setup } from "./setup";
 import { target } from "./target";
@@ -35,4 +36,5 @@ export const PHRASES: Phrases[] = [
   appearance,
   bills,
   insights,
+  payments,
 ];

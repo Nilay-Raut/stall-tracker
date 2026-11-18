@@ -65,6 +65,7 @@ export function CloseTodayScreen() {
             ? Object.fromEntries((pending.plateCounts ?? []).map((c) => [c.itemId, c.quantity]))
             : info.previousCounts,
           billCounts: plateCountsFromBills(view.entries),
+          paymentsConnected: info.paymentsConnected ?? false,
         }
       : null;
 
