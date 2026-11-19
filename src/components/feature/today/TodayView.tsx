@@ -169,8 +169,17 @@ export function TodayView() {
         dailyTarget={snapshot.date === today ? (snapshot.dailyTarget ?? null) : null}
         closedPending={serverProfit === null && localClose !== null}
         fixedInProfit={snapshot.fixedCostInDailyProfit ?? true}
-        openingCash={snapshot.date === today ? (snapshot.close?.openingCash ?? null) : null}
+        openingCash={
+          snapshot.date === today
+            ? (snapshot.close?.openingCash ?? null)
+            : // Just after midnight, before today's data arrives: the last known
+              // count (yesterday's close), else yesterday's opening.
+              (snapshot.close?.previous?.countedCash ?? snapshot.close?.openingCash ?? null)
+        }
         upiStart={snapshot.date === today ? (snapshot.upiStart ?? null) : null}
+        closeInput={
+          localClose?.input ?? (snapshot.date === today ? (snapshot.close?.previous ?? null) : null)
+        }
       />
     </>
   );

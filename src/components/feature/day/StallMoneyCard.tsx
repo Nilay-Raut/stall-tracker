@@ -6,8 +6,9 @@ import { patchSnapshot } from "@/client/entries";
 import { useIsOffline } from "@/client/online";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import type { CloseInput } from "@/domain/dayClose";
 import type { DayTotals } from "@/domain/dayTotals";
-import { moneyNow, upiOutflow } from "@/domain/stallMoney";
+import { moneyAtClose, moneyNow, upiOutflow } from "@/domain/stallMoney";
 import type { BusinessDate } from "@/lib/dates";
 import { setTodayUpiBalance } from "@/server/actions/days";
 import { useT } from "@/i18n/client";
@@ -15,42 +16,61 @@ import { cn } from "@/lib/cn";
 import { type Paise, formatRupees, parseRupeeInput } from "@/lib/money";
 
 /**
- * "Stall money now" on Today: the cash that should be in the drawer plus the UPI
+ * The stall's money on Today, always shown: the cash in the drawer plus the UPI
  * account (its balance once the owner has given it, else today's change), with
  * the sums behind each. Spending from the owner's own pocket is shown apart,
  * since it never was stall money.
+ *
+ * Open day: what the entries say should be there now ("Totals only" shops do
+ * not enter sales until closing, so those come in at close). Closed day: the
+ * cash counted and the UPI total typed at close.
  */
 export function StallMoneyCard({
   today,
   openingCash,
   totals,
   upiStart,
+  close = null,
+  salesAtClose = false,
 }: {
   today: BusinessDate;
   openingCash: Paise;
   totals: DayTotals;
   /** The UPI account balance at the start of today, or null if not given yet. */
   upiStart: Paise | null;
+  /** Today's closing figures, once the day is closed. */
+  close?: CloseInput | null;
+  /** "Totals only" shop: sales are entered at closing, not during the day. */
+  salesAtClose?: boolean;
 }) {
   const t = useT();
-  const money = moneyNow(openingCash, totals, upiStart);
-  const upiChange = totals.upiSales - upiOutflow(totals);
+  const money = close
+    ? moneyAtClose(close.countedCash, close.upiTotal, totals, upiStart)
+    : moneyNow(openingCash, totals, upiStart);
+  // At close the UPI total typed is the day's UPI sales (rule 4).
+  const upiSales = close ? close.upiTotal : totals.upiSales;
+  const upiChange = upiSales - upiOutflow(totals);
   const plus = upiStart !== null ? "+ " : "";
-  const cashSteps = [
-    t("Opening {amount}", { amount: formatRupees(openingCash) }),
-    totals.cashSales > 0 &&
-      `+ ${t("Cash sales {amount}", { amount: formatRupees(totals.cashSales) })}`,
-    totals.drawerExpenses > 0 &&
-      `− ${t("Expenses {amount}", { amount: formatRupees(totals.drawerExpenses) })}`,
-    totals.drawerCashOut > 0 &&
-      `− ${t("Taken out {amount}", { amount: formatRupees(totals.drawerCashOut) })}`,
-    totals.deposits > 0 && `− ${t("To bank {amount}", { amount: formatRupees(totals.deposits) })}`,
-    totals.drawerFixedPaid > 0 &&
-      `− ${t("Fixed costs paid {amount}", { amount: formatRupees(totals.drawerFixedPaid) })}`,
-  ].filter(Boolean);
+  const showUpiSales = !!close || !salesAtClose;
+  const cashSteps = close
+    ? [t("Counted at close")]
+    : [
+        t("Opening {amount}", { amount: formatRupees(openingCash) }),
+        totals.cashSales > 0 &&
+          `+ ${t("Cash sales {amount}", { amount: formatRupees(totals.cashSales) })}`,
+        totals.drawerExpenses > 0 &&
+          `− ${t("Expenses {amount}", { amount: formatRupees(totals.drawerExpenses) })}`,
+        totals.drawerCashOut > 0 &&
+          `− ${t("Taken out {amount}", { amount: formatRupees(totals.drawerCashOut) })}`,
+        totals.deposits > 0 &&
+          `− ${t("To bank {amount}", { amount: formatRupees(totals.deposits) })}`,
+        totals.drawerFixedPaid > 0 &&
+          `− ${t("Fixed costs paid {amount}", { amount: formatRupees(totals.drawerFixedPaid) })}`,
+      ];
+  const shownCashSteps = cashSteps.filter(Boolean);
   const upiSteps = [
     upiStart !== null && t("Start {amount}", { amount: formatRupees(upiStart) }),
-    plus + t("UPI sales {amount}", { amount: formatRupees(totals.upiSales) }),
+    showUpiSales && plus + t("UPI sales {amount}", { amount: formatRupees(upiSales) }),
     totals.upiExpenses > 0 &&
       `− ${t("Expenses {amount}", { amount: formatRupees(totals.upiExpenses) })}`,
     totals.upiCashOut > 0 &&
@@ -66,7 +86,7 @@ export function StallMoneyCard({
       <div className="flex items-end justify-between gap-3">
         <span className="flex items-center gap-1.5 text-[13px] font-semibold text-muted">
           <Wallet size={16} aria-hidden />
-          {t("Stall money now")}
+          {close ? t("Stall money at close") : t("Stall money now")}
         </span>
         <span
           className={cn(
@@ -79,7 +99,11 @@ export function StallMoneyCard({
       </div>
 
       <div className="flex flex-col gap-2 border-t border-line pt-2.5">
-        <MoneyLine label={t("Cash in drawer")} amount={money.cash} steps={cashSteps.join(" ")} />
+        <MoneyLine
+          label={t("Cash in drawer")}
+          amount={money.cash}
+          steps={shownCashSteps.join(" ")}
+        />
         {money.cash < 0 && (
           <p className="-mt-1 text-xs font-semibold text-danger">
             {t("More cash went out than came in. Check the entries.")}
@@ -100,12 +124,18 @@ export function StallMoneyCard({
           })}
         </p>
       )}
+      {salesAtClose && !close && (
+        <p className="text-xs font-semibold text-ink">
+          {t("Cash and UPI sales are added when you close the day.")}
+        </p>
+      )}
       <p className="text-xs text-muted">
         {t("This is money, not profit: fixed costs and cash you take out count differently.")}
       </p>
 
       <div className="flex flex-wrap gap-x-5">
-        <DrawerCount expected={money.cash} />
+        {/* Counting only helps while sales are being entered; after close it is done. */}
+        {!close && !salesAtClose && <DrawerCount expected={money.cash} />}
         <UpiCheck
           today={today}
           expected={money.upiIsBalance ? money.upi : null}

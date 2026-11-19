@@ -7,6 +7,7 @@ import { EntryList } from "@/components/feature/today/EntryList";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import type { CloseInput } from "@/domain/dayClose";
 import { computeDayTotals } from "@/domain/dayTotals";
 import type { Entry } from "@/domain/entry";
 import { useT } from "@/i18n/client";
@@ -37,6 +38,8 @@ type Props = {
   openingCash?: Paise | null;
   /** The UPI account balance at the start of today, if the owner has given it. */
   upiStart?: Paise | null;
+  /** Today's closing figures once closed, for the money at close. */
+  closeInput?: CloseInput | null;
 };
 
 /**
@@ -56,6 +59,7 @@ export function DaySheet({
   fixedInProfit = true,
   openingCash = null,
   upiStart = null,
+  closeInput = null,
 }: Props) {
   const t = useT();
   const totals = computeDayTotals(entries, fixedInProfit ? fixedCost : 0);
@@ -67,7 +71,8 @@ export function DaySheet({
   const shownClosedProfit =
     closedProfit !== null && !fixedInProfit ? closedProfit + fixedCost : closedProfit;
   // Only shops that enter sales one by one know the cash sales before closing.
-  const showMoney = isToday && !closed && takesSales && openingCash !== null;
+  // Always on Today: the money now, or at close once the day is closed.
+  const showMoney = isToday;
   // Entries are newest first. Sales a payment app added by itself are not repeated.
   const lastSale =
     isToday && takesSales ? entries.find((e) => e.type === "sale" && !e.paidVia) : undefined;
@@ -151,9 +156,11 @@ export function DaySheet({
       {showMoney && (
         <StallMoneyCard
           today={date}
-          openingCash={openingCash}
+          openingCash={openingCash ?? 0}
           totals={totals}
           upiStart={upiStart}
+          close={closed ? closeInput : null}
+          salesAtClose={!takesSales}
         />
       )}
 

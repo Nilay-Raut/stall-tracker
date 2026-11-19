@@ -59,6 +59,23 @@ test("the UPI account balance, cash to bank and cash out from UPI", async ({ pag
   await page.goto(`/summary/${businessDate()}`);
   await expect(amountFor(page, "UPI account")).toContainText("₹5,450");
   await expect(amountFor(page, "Stall money at close")).toContainText("₹6,050");
+
+  // Today keeps showing the money after closing: the figures counted at close.
+  await page.goto("/");
+  await expect(amountFor(page, "Stall money at close")).toContainText("₹6,050");
+  await expect(page.getByText("Counted at close")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Count the drawer now" })).toHaveCount(0);
+});
+
+test("a Totals only shop sees its money too, with sales to come at closing", async ({ page }) => {
+  await newShop(page, { totalsOnly: true, openingCash: 1000 });
+  await expect(amountFor(page, "Stall money now")).toContainText("₹1,000");
+  await expect(
+    page.getByText("Cash and UPI sales are added when you close the day."),
+  ).toBeVisible();
+  await addExpense(page, 100, "Gas", "Drawer");
+  await expect(amountFor(page, "Cash in drawer")).toContainText("₹900");
+  await expect(page.getByText("Opening ₹1,000 − Expenses ₹100")).toBeVisible();
 });
 
 test("the UPI balance carries over from earlier days", async ({ page }) => {

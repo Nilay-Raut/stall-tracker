@@ -251,4 +251,10 @@ export const today: Phrases = {
   "Fixed costs paid {amount}": { hi: "तय खर्च दिया {amount}", mr: "ठरलेला खर्च दिला {amount}" },
   "Fixed cost paid": { hi: "तय खर्च दिया", mr: "ठरलेला खर्च दिला" },
   "Fixed cost": { hi: "तय खर्च", mr: "ठरलेला खर्च" },
+
+  // Added: stall money always on Today
+  "Cash and UPI sales are added when you close the day.": {
+    hi: "नकद और UPI बिक्री दिन बंद करते समय जुड़ती है।",
+    mr: "रोख आणि UPI विक्री दिवस बंद करताना जोडली जाते.",
+  },
 };
