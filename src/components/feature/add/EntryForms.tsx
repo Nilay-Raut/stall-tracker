@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useShopSnapshot } from "@/client/localStore";
+import { useDayView, useShopSnapshot } from "@/client/localStore";
 import { ChoiceGroup } from "@/components/ui/ChoiceGroup";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import {
@@ -23,6 +23,10 @@ import { Keypad, QuickAdd } from "./Keypad";
 import { MaterialDetails, draftToPurchase, emptyDraft } from "./MaterialDetails";
 import { BillPanel } from "./BillPanel";
 import { Footer, PaymentChoice } from "./FormParts";
+import { OtherNote, mergeNoteHints } from "./OtherNote";
+import { VoiceButton } from "./VoiceButton";
+import { billTotal } from "@/domain/bill";
+import { parseSpoken } from "@/domain/spoken";
 import { useEntryEditor } from "./useEntryEditor";
 
 export type FormProps = { existing: Entry | null; initialDate: BusinessDate; today: BusinessDate };
@@ -102,9 +106,20 @@ function QuickSale({
   onPayment: (mode: PaymentMode) => void;
 }) {
   const t = useT();
+  const snapshot = useShopSnapshot();
   // A bill switched to a quick amount keeps its total as the starting amount.
   const [digits, setDigits] = useState(rupeesText(existing?.amount));
   const amount = Number(digits || 0) * 100;
+  const usual = snapshot?.quickAmounts ?? [];
+
+  const heard = (text: string) => {
+    const spoken = parseSpoken(text, snapshot?.saleItems ?? []);
+    // "2 chai 1 samosa" with no amount: the items' prices add up to it.
+    const total = spoken.amount ?? (spoken.lines.length > 0 ? billTotal(spoken.lines) : null);
+    if (total) setDigits(String(Math.min(Math.floor(total / 100), 9_999_999)));
+    if (spoken.payment) onPayment(spoken.payment);
+  };
+
   return (
     <>
       <div className="flex flex-col items-center pt-1.5">
@@ -113,6 +128,30 @@ function QuickSale({
           {formatRupees(amount)}
         </output>
       </div>
+      <VoiceButton onHeard={heard} example={t("40 cash")} />
+      {usual.length > 0 && (
+        <div className="flex flex-col gap-1.5" data-no-swipe>
+          <span className="text-xs font-semibold text-muted">{t("Your usual amounts")}</span>
+          <div className="flex flex-wrap gap-2">
+            {usual.map((paise) => (
+              <button
+                key={paise}
+                type="button"
+                aria-pressed={amount === paise}
+                onClick={() => setDigits(String(paise / 100))}
+                className={cn(
+                  "min-h-11 min-w-16 press rounded-full border px-4 text-[15px] font-bold",
+                  amount === paise
+                    ? "border-accent bg-accent text-accent-ink"
+                    : "border-edge glass-soft text-ink",
+                )}
+              >
+                {formatRupees(paise)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <QuickAdd value={digits} onChange={setDigits} />
       <PaymentChoice value={payment} onChange={onPayment} />
       <Keypad value={digits} onChange={setDigits} />
@@ -145,7 +184,11 @@ export function ExpenseForm({ existing, initialDate, today }: FormProps) {
   const [category, setCategory] = useState<ExpenseCategory>(existing?.category ?? "raw_material");
   const [paidFrom, setPaidFrom] = useState<PaidFrom>(existing?.paidFrom ?? "drawer");
   const [material, setMaterial] = useState(() => emptyDraft(existing?.purchase ?? null));
+  const [note, setNote] = useState(existing?.note ?? "");
   const snapshot = useShopSnapshot();
+  // Today's expenses on this phone, so a note typed earlier today is offered even offline.
+  const todays = useDayView(today).entries.filter((e) => e.type === "expense");
+  const noteHints = mergeNoteHints(snapshot?.expenseNotes ?? [], todays);
   const amount = parseRupeeInput(text);
   const tooBig = amount !== null && amount > MAX_ENTRY_AMOUNT;
   const bought = draftToPurchase(material);
@@ -163,6 +206,16 @@ export function ExpenseForm({ existing, initialDate, today }: FormProps) {
       onDateChange={editor.setDate}
       editing={!!existing}
     >
+      <VoiceButton
+        example={t("gas 900 from pocket")}
+        onHeard={(heardText) => {
+          const spoken = parseSpoken(heardText);
+          if (spoken.amount) setText(String(spoken.amount / 100));
+          if (spoken.category) setCategory(spoken.category);
+          if (spoken.paidFrom) setPaidFrom(spoken.paidFrom);
+          if (spoken.note) setNote(spoken.note);
+        }}
+      />
       <MoneyInput
         label={t("Amount")}
         name="amount"
@@ -189,6 +242,16 @@ export function ExpenseForm({ existing, initialDate, today }: FormProps) {
         <p className="-mt-1 text-xs text-muted">
           {t("Only daily wages here. A monthly salary belongs in Settings, under fixed costs.")}
         </p>
+      )}
+      {category === "other" && (
+        <OtherNote
+          value={note}
+          onChange={setNote}
+          hints={noteHints}
+          onPickAmount={(paise) => {
+            if (!text.trim()) setText(rupeesText(paise));
+          }}
+        />
       )}
       <ChoiceGroup
         label={t("Paid from")}
@@ -219,6 +282,7 @@ export function ExpenseForm({ existing, initialDate, today }: FormProps) {
             category,
             paidFrom,
             purchase: category === "salary" ? null : bought.purchase,
+            note: category === "other" ? note.trim() || null : null,
           })
         }
         editing={!!existing}

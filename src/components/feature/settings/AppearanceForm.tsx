@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { ThemeSwitch } from "@/components/ui/ThemeSwitch";
+import { TextSizeSwitch, ThemeSwitch } from "@/components/ui/ThemeSwitch";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, accentProblem, normalizeHex } from "@/domain/brand";
 import { useT } from "@/i18n/client";
 import { msg } from "@/i18n/translate";
@@ -238,6 +238,11 @@ export function AppearanceForm({ shopName, savedAccent, logoVersion }: Props) {
       <Card>
         <h2 className="text-sm font-bold">{t("Light or dark")}</h2>
         <ThemeSwitch />
+      </Card>
+
+      <Card>
+        <h2 className="text-sm font-bold">{t("Bigger text")}</h2>
+        <TextSizeSwitch />
       </Card>
 
       {notice && (

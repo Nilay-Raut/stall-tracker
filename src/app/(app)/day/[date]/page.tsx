@@ -39,6 +39,7 @@ async function DayContent({ params }: Pick<PageProps<"/day/[date]">, "params">) 
       fixedCost={context.entered.fixedCost}
       salesMode={shop.salesMode}
       closedProfit={profit}
+      fixedInProfit={shop.fixedCostInDailyProfit}
     />
   );
 }

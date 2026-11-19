@@ -46,6 +46,15 @@ export function deleteEntry(entry: Entry): Promise<void> {
   return saveEntry({ ...entry, deleted: true, updatedAt: new Date().toISOString() });
 }
 
+/** Changes the shop basics stored on the phone (e.g. today's opening cash after the morning check). */
+export async function patchSnapshot(change: (snapshot: ShopSnapshot) => ShopSnapshot) {
+  const db = await localDb();
+  const snapshot = await db.get("meta", SNAPSHOT_KEY);
+  if (!snapshot) return;
+  await db.put("meta", change(snapshot), SNAPSHOT_KEY);
+  notifyLocalChange();
+}
+
 /** Gives up on a change the server refused, and drops the phone's copy of it. */
 export async function discardRefusedChange(entryId: string): Promise<void> {
   const db = await localDb();

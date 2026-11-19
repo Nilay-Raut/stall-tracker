@@ -224,4 +224,12 @@ export const close: Phrases = {
   Same: { hi: "उतनी ही", mr: "तेवढीच" },
   "{amount} more": { hi: "{amount} ज़्यादा", mr: "{amount} जास्त" },
   "{amount} less": { hi: "{amount} कम", mr: "{amount} कमी" },
+
+  // Added: undo, repeat sale, usual amounts, drawer checks, voice, text size, sharing, restock
+  "Share on WhatsApp": { hi: "WhatsApp पर भेजें", mr: "WhatsApp वर पाठवा" },
+  "Sales {amount}": { hi: "बिक्री {amount}", mr: "विक्री {amount}" },
+  "Cash {amount}": { hi: "नकद {amount}", mr: "रोख {amount}" },
+  "UPI {amount}": { hi: "UPI {amount}", mr: "UPI {amount}" },
+  "Fixed costs {amount}": { hi: "तय खर्च {amount}", mr: "ठरलेला खर्च {amount}" },
+  "Loss {amount}": { hi: "घाटा {amount}", mr: "तोटा {amount}" },
 };

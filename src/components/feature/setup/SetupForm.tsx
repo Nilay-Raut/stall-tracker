@@ -26,6 +26,8 @@ export type SetupValues = {
   openingCash: string;
   salesMode: SalesMode;
   costs: Array<{ name: string; amount: string }>;
+  /** Take the day's share of the fixed costs out of the profit on Today. */
+  fixedInDailyProfit: boolean;
 };
 
 const LANGUAGES = [
@@ -74,6 +76,7 @@ export function SetupForm({ initial, isFirstSetup, daysInMonth, itemCount }: Pro
   const [closingTime, setClosingTime] = useState(initial.closingTime);
   const [openingCash, setOpeningCash] = useState(initial.openingCash);
   const [salesMode, setSalesMode] = useState<SalesMode>(initial.salesMode);
+  const [fixedInDailyProfit, setFixedInDailyProfit] = useState(initial.fixedInDailyProfit);
   const [costs, setCosts] = useState<CostRow[]>(() =>
     initial.costs.length > 0
       ? initial.costs.map((c) => newRow(c.name, c.amount))
@@ -233,6 +236,40 @@ export function SetupForm({ initial, isFirstSetup, daysInMonth, itemCount }: Pro
               amount: formatRupees(fixedCostPerDay(monthly, daysInMonth)),
             })}
           </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
+          <span className="flex flex-col">
+            <span id="fixed-daily-label" className="text-[15px] font-semibold">
+              {t("Take them out of each day's profit")}
+            </span>
+            <span className="text-xs text-muted">
+              {fixedInDailyProfit
+                ? t("Today shows profit after the day's share of fixed costs.")
+                : t(
+                    "Today shows sales minus expenses only. Reports and Target still count fixed costs.",
+                  )}
+            </span>
+          </span>
+          <input type="hidden" name="fixedInDailyProfit" value={fixedInDailyProfit ? "1" : "0"} />
+          <button
+            type="button"
+            role="switch"
+            aria-checked={fixedInDailyProfit}
+            aria-labelledby="fixed-daily-label"
+            onClick={() => setFixedInDailyProfit((on) => !on)}
+            className={cn(
+              "relative h-8 w-14 shrink-0 rounded-full",
+              fixedInDailyProfit ? "bg-accent" : "bg-track",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-1 size-6 rounded-full bg-white transition-all",
+                fixedInDailyProfit ? "left-7" : "left-1",
+              )}
+            />
+          </button>
         </div>
       </Card>
 

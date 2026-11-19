@@ -45,7 +45,27 @@ describe("entriesCsv", () => {
       },
     ]);
     expect(csv.split("\r\n")[1]).toBe(
-      "2026-11-13,9:25 pm,Expense,480,,Raw material,Drawer,Paneer,2,kg,'=Raju",
+      "2026-11-13,9:25 pm,Expense,480,,Raw material,Drawer,Paneer,2,kg,'=Raju,",
     );
+  });
+
+  it("adds the note of an Other expense", () => {
+    const csv = entriesCsv([
+      {
+        date: "2026-11-13",
+        time: new Date("2026-11-13T15:55:00Z"),
+        type: "expense",
+        amount: r(60),
+        paymentMode: null,
+        category: "other",
+        paidFrom: "drawer",
+        note: "Ice",
+        material: null,
+        quantity: null,
+        unit: null,
+        supplier: null,
+      },
+    ]);
+    expect(csv.split("\r\n")[1]).toBe("2026-11-13,9:25 pm,Expense,60,,Other,Drawer,,,,,Ice");
   });
 });

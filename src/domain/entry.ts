@@ -28,6 +28,9 @@ export type SalesMode = (typeof SALES_MODES)[number];
 /** "Totals only" shops enter sales at closing, not one by one. */
 export const takesSaleEntries = (mode: SalesMode) => mode !== "totals";
 
+/** Longest note on an "Other" expense. */
+export const MAX_NOTE_LENGTH = 40;
+
 /** ₹10 lakh: far above any single entry at a stall, catches typing mistakes. */
 export const MAX_ENTRY_AMOUNT: Paise = 10_00_000_00;
 
@@ -48,6 +51,11 @@ export type Entry = {
   paidFrom: PaidFrom | null;
   /** Expenses only, optional: what was bought, for supplier price tracking. */
   purchase: Purchase | null;
+  /**
+   * Expenses only, optional: what an "Other" expense was for ("Ice", "Repairs").
+   * Missing on entries saved before it existed: treat that as none.
+   */
+  note?: string | null;
   /** Sales only, optional: the bill's items (v2 Phase 3). The amount is their total. */
   lines: SaleLine[] | null;
   /**
@@ -118,6 +126,14 @@ export const entrySchema = z
     paidFrom: z.enum(PAID_FROM).nullable(),
     // Phones from before Phase 7 send no purchase at all: treat that as none.
     purchase: purchaseSchema.nullable().default(null),
+    // Phones from before expense notes send none: treat that as none. Blank = none.
+    note: z
+      .string()
+      .trim()
+      .max(MAX_NOTE_LENGTH)
+      .nullable()
+      .default(null)
+      .transform((note) => note || null),
     // Phones from before v2 send no lines at all: treat that as a plain sale.
     lines: z.array(saleLineSchema).min(1).max(MAX_BILL_LINES).nullable().default(null),
     paidVia: z.string().max(20).nullable().default(null),
@@ -143,6 +159,9 @@ export const entrySchema = z
         path: ["purchase"],
         message: "only expenses have a purchase",
       });
+    }
+    if (entry.note !== null && entry.type !== "expense") {
+      ctx.addIssue({ code: "custom", path: ["note"], message: "only expenses have a note" });
     }
     if (entry.lines !== null) {
       if (entry.type !== "sale") {

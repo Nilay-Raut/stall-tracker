@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NotReadyError, deleteEntry, saveEntry } from "@/client/entries";
+import { playCue } from "@/client/sound";
+import { offerUndo } from "@/client/undo";
 import type { Entry } from "@/domain/entry";
 import { useT } from "@/i18n/client";
 import { msg } from "@/i18n/translate";
@@ -13,6 +15,7 @@ type Details = Pick<Entry, "type" | "paymentMode" | "category" | "paidFrom"> & {
   amount: Paise;
   purchase?: Entry["purchase"];
   lines?: Entry["lines"];
+  note?: Entry["note"];
 };
 
 /**
@@ -34,11 +37,12 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
     else window.location.assign(target);
   };
 
-  const run = async (work: () => Promise<void>) => {
+  const run = async (work: () => Promise<void>, onSaved?: () => void) => {
     setBusy(true);
     setError(null);
     try {
       await work();
+      onSaved?.();
       done();
     } catch (err) {
       setError(
@@ -53,24 +57,45 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
 
   const save = (details: Details) => {
     const now = new Date().toISOString();
-    return run(() =>
-      saveEntry({
-        id: existing?.id ?? crypto.randomUUID(),
-        businessDate: date,
-        occurredAt: existing?.occurredAt ?? now,
-        updatedAt: now,
-        deleted: false,
-        purchase: null,
-        lines: null,
-        paidVia: existing?.paidVia ?? null,
-        ...details,
-      }),
+    const entry: Entry = {
+      id: existing?.id ?? crypto.randomUUID(),
+      businessDate: date,
+      occurredAt: existing?.occurredAt ?? now,
+      updatedAt: now,
+      deleted: false,
+      purchase: null,
+      lines: null,
+      note: null,
+      paidVia: existing?.paidVia ?? null,
+      ...details,
+    };
+    return run(
+      () => saveEntry(entry),
+      () => {
+        playCue(details.type === "sale" ? "sale" : "expense");
+        // Undo puts back the entry as it was, or removes a new one.
+        offerUndo({
+          kind: "saved",
+          type: entry.type,
+          amount: entry.amount,
+          restore: existing ?? { ...entry, deleted: true },
+        });
+      },
     );
   };
 
   const remove = () => {
     if (!existing || !window.confirm(t("Delete this entry?"))) return;
-    return run(() => deleteEntry(existing));
+    return run(
+      () => deleteEntry(existing),
+      () =>
+        offerUndo({
+          kind: "deleted",
+          type: existing.type,
+          amount: existing.amount,
+          restore: { ...existing, deleted: false },
+        }),
+    );
   };
 
   return { date, setDate, save, remove, busy, error };

@@ -129,4 +129,15 @@ export const setup: Phrases = {
 
   "Page not found": { hi: "पेज नहीं मिला", mr: "पान सापडले नाही" },
   "This screen does not exist.": { hi: "यह स्क्रीन मौजूद नहीं है।", mr: "ही स्क्रीन अस्तित्वात नाही." },
+
+  // Added: drawer cash, expense notes, fixed-cost switch, sounds and reminders
+  "Take them out of each day's profit": { hi: "हर दिन के मुनाफ़े से घटाएँ", mr: "रोजच्या नफ्यातून वजा करा" },
+  "Today shows profit after the day's share of fixed costs.": {
+    hi: "आज की स्क्रीन पर तय खर्च का रोज़ का हिस्सा घटाकर मुनाफ़ा दिखेगा।",
+    mr: "आजच्या स्क्रीनवर ठरलेल्या खर्चाचा रोजचा भाग वजा करून नफा दिसेल.",
+  },
+  "Today shows sales minus expenses only. Reports and Target still count fixed costs.": {
+    hi: "आज की स्क्रीन पर सिर्फ़ बिक्री घटा खर्च दिखेगा। रिपोर्ट और लक्ष्य में तय खर्च गिना जाता है।",
+    mr: "आजच्या स्क्रीनवर फक्त विक्री वजा खर्च दिसेल. अहवाल आणि लक्ष्यात ठरलेला खर्च मोजला जातो.",
+  },
 };

@@ -62,6 +62,8 @@ export type CsvEntry = {
   paymentMode: PaymentMode | null;
   category: ExpenseCategory | null;
   paidFrom: PaidFrom | null;
+  /** What an "Other" expense was for (missing in old callers = none). */
+  note?: string | null;
   material: string | null;
   quantity: number | null;
   unit: string | null;
@@ -88,6 +90,7 @@ export function entriesCsv(list: CsvEntry[], lang: Lang = "en", t: Translate = e
     t("Quantity"),
     t("Unit"),
     t("Supplier"),
+    t("Note"),
   ];
   const rows: Cell[][] = list.map((e) => [
     e.date,
@@ -101,6 +104,7 @@ export function entriesCsv(list: CsvEntry[], lang: Lang = "en", t: Translate = e
     e.quantity,
     e.unit,
     e.supplier,
+    e.note ?? null,
   ]);
   return toCsv(header, rows);
 }

@@ -191,7 +191,7 @@ test("the reminder job is closed to outsiders and sends one reminder a day", asy
     expect(received[0]["content-encoding"]).toBe("aes128gcm"); // encrypted for the phone
     expect(received[0].authorization).toMatch(/^vapid /);
 
-    // Only one reminder a day.
+    // Only one closing reminder a day, and the follow-up waits an hour after it.
     await request.post("/api/cron/reminders", { headers });
     expect(received.length).toBe(1);
   } finally {

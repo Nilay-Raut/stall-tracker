@@ -1,0 +1,1 @@
+ALTER TABLE "shops" ADD COLUMN "last_reminder_time" time;

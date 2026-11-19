@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { WebPushError, sendNotification } from "web-push";
-import { isReminderDue } from "@/domain/reminder";
+import { dueReminder } from "@/domain/reminder";
 import { translator } from "@/i18n/translate";
 import { businessDate, businessTime } from "@/lib/dates";
 import { serverEnv } from "@/lib/env";
@@ -62,7 +62,8 @@ export async function isSubscribed(userId: string, endpoint: string): Promise<bo
 }
 
 /**
- * Sends the closing-time reminder to every shop where it is due (rule 17).
+ * Sends the closing-time reminder, and an hour later the "still not closed"
+ * follow-up, to every shop where one is due (rule 17).
  * Called every few minutes by the server's own timer. Returns how many were sent.
  */
 export async function sendDueReminders(now: Date = new Date()): Promise<{ sent: number }> {
@@ -83,6 +84,8 @@ export async function sendDueReminders(now: Date = new Date()): Promise<{ sent: 
       language: shops.language,
       closingTime: shops.closingTime,
       lastReminderDate: shops.lastReminderDate,
+      lastFollowUpDate: shops.lastFollowUpDate,
+      lastReminderTime: shops.lastReminderTime,
       todayStatus: days.status,
     })
     .from(shops)
@@ -91,18 +94,27 @@ export async function sendDueReminders(now: Date = new Date()): Promise<{ sent: 
 
   let sent = 0;
   for (const shop of candidates) {
-    const due = isReminderDue({
+    const due = dueReminder({
       reminderEnabled: true,
       closingTime: shop.closingTime.slice(0, 5),
       now: time,
       today,
       lastReminderDate: shop.lastReminderDate,
+      lastFollowUpDate: shop.lastFollowUpDate,
+      lastReminderTime: shop.lastReminderTime?.slice(0, 5) ?? null,
       todayStatus: shop.todayStatus ?? "none",
     });
     if (!due) continue;
 
     // Mark first, so a slow push service can never cause a second reminder.
-    await db.update(shops).set({ lastReminderDate: today }).where(eq(shops.id, shop.id));
+    await db
+      .update(shops)
+      .set(
+        due === "closing"
+          ? { lastReminderDate: today, lastReminderTime: time }
+          : { lastFollowUpDate: today },
+      )
+      .where(eq(shops.id, shop.id));
 
     const subscriptions = await db
       .select()
@@ -114,11 +126,19 @@ export async function sendDueReminders(now: Date = new Date()): Promise<{ sent: 
         await sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           // No money figures: the text shows on the lock screen.
-          JSON.stringify({
-            title: t("Time to close the day"),
-            body: t("Count the drawer and close the day in Stall Tracker."),
-            url: "/close/today",
-          }),
+          JSON.stringify(
+            due === "closing"
+              ? {
+                  title: t("Time to close the day"),
+                  body: t("Count the drawer and close the day in Stall Tracker."),
+                  url: "/close/today",
+                }
+              : {
+                  title: t("The day is still not closed"),
+                  body: t("Close it now so today's profit is saved correctly."),
+                  url: "/close/today",
+                },
+          ),
           { vapidDetails, TTL: 6 * 60 * 60, urgency: "normal" },
         );
         sent += 1;

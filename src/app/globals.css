@@ -170,6 +170,15 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Bigger text (Settings > Appearance, per phone): scales the whole screen, so
+   buttons grow with the words and layouts keep their shape. */
+html[data-text="large"] body {
+  zoom: 1.12;
+}
+html[data-text="xl"] body {
+  zoom: 1.25;
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-ink);

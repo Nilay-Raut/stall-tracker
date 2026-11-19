@@ -36,6 +36,11 @@ const setupSchema = z.object({
   closingTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, msg("Pick a closing time.")),
   openingCash: amount(msg("Enter the cash you start the day with."), { allowZero: true }),
   salesMode: z.enum(SALES_MODES),
+  // Missing (a form from before this switch): keep taking fixed costs out, as before.
+  fixedCostInDailyProfit: z
+    .enum(["1", "0"])
+    .default("1")
+    .transform((value) => value === "1"),
   costs: z
     .array(
       z.object({
@@ -68,6 +73,7 @@ export async function saveSetup(_prev: FormState, formData: FormData): Promise<F
     closingTime: String(formData.get("closingTime") ?? ""),
     openingCash: String(formData.get("openingCash") ?? ""),
     salesMode: formData.get("salesMode"),
+    fixedCostInDailyProfit: formData.get("fixedInDailyProfit") ?? undefined,
     costs: readCosts(formData),
   });
   if (!parsed.success) {

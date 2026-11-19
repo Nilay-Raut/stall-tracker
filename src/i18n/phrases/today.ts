@@ -97,7 +97,6 @@ export const today: Phrases = {
   Entries: { hi: "एंट्री", mr: "नोंदी" },
 
   // Entries list
-  "Tap a row to edit": { hi: "बदलने के लिए लाइन दबाएँ", mr: "बदलण्यासाठी ओळ दाबा" },
   "No entries yet. Add a sale or an expense above.": {
     hi: "अभी कोई एंट्री नहीं। ऊपर से बिक्री या खर्च जोड़ें।",
     mr: "अजून नोंद नाही. वरून विक्री किंवा खर्च जोडा.",
@@ -117,4 +116,96 @@ export const today: Phrases = {
   },
   "the server refused it.": { hi: "सर्वर ने मना कर दिया।", mr: "सर्व्हरने नाकारले." },
   Discard: { hi: "हटा दें", mr: "काढून टाका" },
+
+  // Added: drawer cash, expense notes, fixed-cost switch, sounds and reminders
+  "Profit before fixed costs {amount}": {
+    hi: "तय खर्च से पहले मुनाफ़ा {amount}",
+    mr: "ठरलेल्या खर्चाआधी नफा {amount}",
+  },
+  "Fixed costs ({amount} a day) are not taken out here. Reports still count them.": {
+    hi: "तय खर्च ({amount} रोज़) यहाँ नहीं घटाया गया। रिपोर्ट में वह गिना जाता है।",
+    mr: "ठरलेला खर्च ({amount} रोज) इथे वजा केलेला नाही. अहवालात तो मोजला जातो.",
+  },
+  "Opening {amount}": { hi: "शुरुआत {amount}", mr: "सुरुवात {amount}" },
+  "Cash sales {amount}": { hi: "नकद बिक्री {amount}", mr: "रोख विक्री {amount}" },
+  "Expenses {amount}": { hi: "खर्च {amount}", mr: "खर्च {amount}" },
+  "Taken out {amount}": { hi: "निकाला {amount}", mr: "काढले {amount}" },
+  "Cash in drawer now": { hi: "अभी गल्ले में नकद", mr: "आता गल्ल्यात रोख" },
+  "UPI today": { hi: "आज UPI", mr: "आज UPI" },
+  "More cash went out than came in. Check the entries.": {
+    hi: "जितना नकद आया उससे ज़्यादा निकला। एंट्री जाँचें।",
+    mr: "आलेल्या रोखीपेक्षा जास्त गेली. नोंदी तपासा.",
+  },
+  "Yesterday was not closed. Close it now.": {
+    hi: "कल का दिन बंद नहीं हुआ। अभी बंद करें।",
+    mr: "कालचा दिवस बंद झाला नाही. आता बंद करा.",
+  },
+  "{day} was not closed. Close it now.": {
+    hi: "{day} बंद नहीं हुआ। अभी बंद करें।",
+    mr: "{day} बंद झाला नाही. आता बंद करा.",
+  },
+  "The day is still not closed": { hi: "दिन अभी भी बंद नहीं हुआ", mr: "दिवस अजून बंद झाला नाही" },
+  "Close it now so today's profit is saved correctly.": {
+    hi: "अभी बंद करें ताकि आज का मुनाफ़ा सही सेव हो।",
+    mr: "आता बंद करा म्हणजे आजचा नफा बरोबर सेव्ह होईल.",
+  },
+  Sounds: { hi: "आवाज़", mr: "आवाज" },
+  "A short sound when a sale is saved, a UPI payment comes in or it is closing time.": {
+    hi: "बिक्री सेव होने पर, UPI पेमेंट आने पर या बंद करने के समय छोटी आवाज़।",
+    mr: "विक्री सेव्ह झाल्यावर, UPI पेमेंट आल्यावर किंवा बंद करण्याच्या वेळी छोटा आवाज.",
+  },
+
+  // Added: undo, repeat sale, usual amounts, drawer checks, voice, text size, sharing, restock
+  "Cash counted in the drawer now (₹)": {
+    hi: "अभी गल्ले में गिना नकद (₹)",
+    mr: "आता गल्ल्यात मोजलेली रोख (₹)",
+  },
+  "It matches.": { hi: "मेल खाता है।", mr: "जुळते." },
+  "{amount} more than expected. A sale may be missing.": {
+    hi: "उम्मीद से {amount} ज़्यादा। शायद कोई बिक्री छूट गई।",
+    mr: "अपेक्षेपेक्षा {amount} जास्त. एखादी विक्री राहिली असेल.",
+  },
+  "{amount} short. An expense or cash out may be missing.": {
+    hi: "{amount} कम। शायद कोई खर्च या निकाला नकद छूट गया।",
+    mr: "{amount} कमी. एखादा खर्च किंवा काढलेली रोख राहिली असेल.",
+  },
+  "Count the drawer now": { hi: "अभी गल्ला गिनें", mr: "आता गल्ला मोजा" },
+  "Repeat last sale": { hi: "पिछली बिक्री दोहराएँ", mr: "मागची विक्री पुन्हा करा" },
+  "Tap to edit · hold to delete": {
+    hi: "बदलने के लिए दबाएँ · मिटाने के लिए दबाए रखें",
+    mr: "बदलण्यासाठी दाबा · पुसण्यासाठी दाबून ठेवा",
+  },
+  "Needs internet. You can also fix it when you close the day.": {
+    hi: "इंटरनेट चाहिए। दिन बंद करते समय भी ठीक कर सकते हैं।",
+    mr: "इंटरनेट लागते. दिवस बंद करताना पण दुरुस्त करू शकता.",
+  },
+  "Start of day: is {amount} in the drawer?": {
+    hi: "दिन की शुरुआत: क्या गल्ले में {amount} है?",
+    mr: "दिवसाची सुरुवात: गल्ल्यात {amount} आहेत का?",
+  },
+  "Count it once, so the drawer figure stays right all day.": {
+    hi: "एक बार गिन लें, ताकि पूरे दिन गल्ले का हिसाब सही रहे।",
+    mr: "एकदा मोजा, म्हणजे दिवसभर गल्ल्याचा हिशोब बरोबर राहील.",
+  },
+  "Cash in the drawer now (₹)": { hi: "अभी गल्ले में नकद (₹)", mr: "आता गल्ल्यात रोख (₹)" },
+  "Yes, correct": { hi: "हाँ, सही है", mr: "हो, बरोबर" },
+  "No, change": { hi: "नहीं, बदलें", mr: "नाही, बदला" },
+  "Time to buy?": { hi: "खरीदने का समय?", mr: "खरेदीची वेळ?" },
+  "you usually buy it every day. It has been {since} days.": {
+    hi: "आप इसे रोज़ खरीदते हैं। {since} दिन हो गए।",
+    mr: "तुम्ही हे रोज घेता. {since} दिवस झाले.",
+  },
+  "you usually buy it every {every} days. It has been {since} days.": {
+    hi: "आप इसे हर {every} दिन में खरीदते हैं। {since} दिन हो गए।",
+    mr: "तुम्ही हे दर {every} दिवसांनी घेता. {since} दिवस झाले.",
+  },
+  "Hide for today": { hi: "आज के लिए छिपाएँ", mr: "आजसाठी लपवा" },
+  "Entry deleted · {amount}": { hi: "एंट्री मिटाई · {amount}", mr: "नोंद पुसली · {amount}" },
+  "Sale saved · {amount} {mode}": {
+    hi: "बिक्री सेव · {amount} {mode}",
+    mr: "विक्री सेव्ह · {amount} {mode}",
+  },
+  "Expense saved · {amount}": { hi: "खर्च सेव · {amount}", mr: "खर्च सेव्ह · {amount}" },
+  "Cash out saved · {amount}": { hi: "निकाला नकद सेव · {amount}", mr: "काढलेली रोख सेव्ह · {amount}" },
+  Undo: { hi: "वापस लें", mr: "रद्द करा" },
 };

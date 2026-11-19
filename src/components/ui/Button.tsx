@@ -26,7 +26,7 @@ const sizes: Record<Size, string> = {
   lg: "min-h-14 rounded-cta px-5 text-[17px]",
 };
 
-function buttonClass({ variant = "primary", size = "md", className }: StyleProps): string {
+export function buttonClass({ variant = "primary", size = "md", className }: StyleProps): string {
   return cn(base, variants[variant], sizes[size], className);
 }
 

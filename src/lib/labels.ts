@@ -36,7 +36,8 @@ export function describeEntry(
       return { title: t("Sale"), note: t(PAYMENT_LABELS[entry.paymentMode ?? "cash"]) };
     case "expense":
       return {
-        title: t(CATEGORY_LABELS[entry.category ?? "other"]),
+        // An "Other" expense with a note shows what it was for.
+        title: entry.note || t(CATEGORY_LABELS[entry.category ?? "other"]),
         note: t(PAID_FROM_NOTES[entry.paidFrom ?? "drawer"]),
       };
     case "cash_out":

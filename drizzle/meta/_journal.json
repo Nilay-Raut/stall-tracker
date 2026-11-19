@@ -78,6 +78,20 @@
       "when": 1794983745385,
       "tag": "0010_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795086754037,
+      "tag": "0011_expense_note_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795087842081,
+      "tag": "0012_reminder_time",
+      "breakpoints": true
     }
   ]
 }

@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DaySummaryView } from "@/components/feature/close/DaySummaryView";
-import { ButtonLink } from "@/components/ui/Button";
+import { MessageCircle } from "lucide-react";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
+import { whatsAppLink } from "@/domain/bill";
+import { daySummaryMessage } from "@/domain/shareSummary";
 import { plateInsight } from "@/domain/plates";
 import { translator } from "@/i18n/translate";
-import { businessDate } from "@/lib/dates";
+import { businessDate, formatDayLabel } from "@/lib/dates";
 import { summaryNotes } from "@/lib/summaryNotes";
 import { getDaySummary } from "@/server/days";
 import { requireShop } from "@/server/queries/shop";
@@ -61,6 +64,33 @@ async function SummaryContent({ params }: Pick<PageProps<"/summary/[date]">, "pa
       )}
       footer={
         <>
+          <a
+            href={whatsAppLink(
+              daySummaryMessage(
+                {
+                  shopName: shop.name,
+                  day: formatDayLabel(date, shop.language),
+                  sales: day.salesTotal,
+                  cashSales: day.cashSales,
+                  upiSales: day.upiSales,
+                  expenses: day.expenseTotal,
+                  fixedCost: day.fixedCost,
+                  profit: day.profit,
+                },
+                t,
+              ),
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClass({
+              variant: "outline",
+              size: "lg",
+              className: "col-span-2 gap-2",
+            })}
+          >
+            <MessageCircle size={20} aria-hidden />
+            {t("Share on WhatsApp")}
+          </a>
           {/* The server's close form: always has the latest figures for an edit. */}
           <ButtonLink href={`/close?date=${date}`} variant="outline" size="lg">
             {t("Edit day")}

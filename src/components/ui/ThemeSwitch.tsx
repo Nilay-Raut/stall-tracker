@@ -1,6 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { type TextSize, setTextSize, useTextSize } from "@/client/textSize";
 import { type ThemeChoice, setTheme, useTheme } from "@/client/theme";
 import { useT } from "@/i18n/client";
 import { msg } from "@/i18n/translate";
@@ -22,6 +23,26 @@ export function ThemeSwitch() {
       choices={CHOICES.map((c) => ({ value: c.value, label: t(c.label) }))}
       value={theme?.choice ?? "system"}
       onChange={setTheme}
+    />
+  );
+}
+
+const SIZES = [
+  { value: "normal", label: msg("Normal") },
+  { value: "large", label: msg("Large") },
+  { value: "xl", label: msg("Extra large") },
+] as const;
+
+/** Settings: Normal / Large / Extra large text, for reading in bright sun. This phone only. */
+export function TextSizeSwitch() {
+  const t = useT();
+  const size = useTextSize();
+  return (
+    <ChoiceGroup<TextSize>
+      label={t("Text size (this phone)")}
+      choices={SIZES.map((c) => ({ value: c.value, label: t(c.label) }))}
+      value={size ?? "normal"}
+      onChange={setTextSize}
     />
   );
 }

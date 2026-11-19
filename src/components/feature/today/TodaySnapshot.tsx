@@ -1,8 +1,10 @@
 import { businessDate } from "@/lib/dates";
-import { closedProfit, getCloseContext } from "@/server/days";
+import { closedProfit, getCloseContext, lastUnclosedDay } from "@/server/days";
 import { getDb } from "@/server/db/client";
 import { fixedCostForDate, getDayEntries } from "@/server/entries";
 import { logoVersion } from "@/server/brand";
+import { getExpenseNoteHints } from "@/server/expenseNotes";
+import { getQuickAmounts, getRestockHints } from "@/server/hints";
 import { listItems } from "@/server/items";
 import { isConnected, listConnections } from "@/server/payments/connections";
 import { paymentsAvailable } from "@/server/payments/secretBox";
@@ -19,17 +21,33 @@ import { SnapshotLoader } from "./SnapshotLoader";
 export async function TodaySnapshot() {
   const shop = await requireShop();
   const date = businessDate();
-  const [entries, fixedCostPerDay, profitIfClosed, hints, dailyTarget, close, logo, items] =
-    await Promise.all([
-      getDayEntries(shop.id, date, { withDeleted: true }),
-      fixedCostForDate(getDb(), shop.id, date),
-      closedProfit(shop.id, date),
-      getPurchaseHints(shop.id),
-      dailySalesTarget(shop.id, date),
-      getCloseContext(shop, date),
-      logoVersion(shop.id),
-      listItems(shop.id),
-    ]);
+  const [
+    entries,
+    fixedCostPerDay,
+    profitIfClosed,
+    hints,
+    dailyTarget,
+    close,
+    logo,
+    items,
+    expenseNotes,
+    unclosedDate,
+    quickAmounts,
+    restock,
+  ] = await Promise.all([
+    getDayEntries(shop.id, date, { withDeleted: true }),
+    fixedCostForDate(getDb(), shop.id, date),
+    closedProfit(shop.id, date),
+    getPurchaseHints(shop.id),
+    dailySalesTarget(shop.id, date),
+    getCloseContext(shop, date),
+    logoVersion(shop.id),
+    listItems(shop.id),
+    getExpenseNoteHints(shop.id),
+    lastUnclosedDay(shop.id, date),
+    getQuickAmounts(shop.id, date),
+    getRestockHints(shop.id, date),
+  ]);
   const connections = paymentsAvailable() ? await listConnections(shop.id) : [];
 
   return (
@@ -57,6 +75,11 @@ export async function TodaySnapshot() {
         },
         materials: hints.materials,
         suppliers: hints.suppliers,
+        expenseNotes,
+        fixedCostInDailyProfit: shop.fixedCostInDailyProfit,
+        unclosedDate,
+        quickAmounts,
+        restock,
       }}
       entries={entries}
     />

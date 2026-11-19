@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { applyDayEntries } from "@/client/entries";
-import { useDayView } from "@/client/localStore";
+import { useDaySwipe } from "@/client/gestures";
+import { useDayView, useToday } from "@/client/localStore";
 import type { Entry } from "@/domain/entry";
 import { useLang, useT } from "@/i18n/client";
 import { type BusinessDate, formatDayLabel } from "@/lib/dates";
@@ -18,6 +19,7 @@ type Props = {
   fixedCost: Paise;
   salesMode: SalesMode;
   closedProfit: Paise | null;
+  fixedInProfit: boolean;
 };
 
 /**
@@ -25,8 +27,16 @@ type Props = {
  * entries, close the day. The day's entries are stored on the phone so they
  * can be edited the same way as today's.
  */
-export function DayScreen({ date, serverEntries, fixedCost, salesMode, closedProfit }: Props) {
+export function DayScreen({
+  date,
+  serverEntries,
+  fixedCost,
+  salesMode,
+  closedProfit,
+  fixedInProfit,
+}: Props) {
   const view = useDayView(date);
+  useDaySwipe(date, useToday()); // swipe between days
   const t = useT();
   const lang = useLang();
 
@@ -53,6 +63,7 @@ export function DayScreen({ date, serverEntries, fixedCost, salesMode, closedPro
           fixedCost={fixedCost}
           salesMode={salesMode}
           closedProfit={closedProfit}
+          fixedInProfit={fixedInProfit}
         />
       ) : (
         <LoadingNote />

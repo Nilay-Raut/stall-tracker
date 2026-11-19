@@ -101,4 +101,11 @@ export const appearance: Phrases = {
   "Logo saved.": { hi: "लोगो सेव हो गया।", mr: "लोगो सेव्ह झाला." },
   "Logo removed.": { hi: "लोगो हटा दिया।", mr: "लोगो काढला." },
   "Light or dark": { hi: "हल्का या गहरा", mr: "फिकट की गडद" },
+
+  // Added: undo, repeat sale, usual amounts, drawer checks, voice, text size, sharing, restock
+  "Bigger text": { hi: "बड़े अक्षर", mr: "मोठी अक्षरे" },
+  Normal: { hi: "सामान्य", mr: "साधारण" },
+  Large: { hi: "बड़ा", mr: "मोठी" },
+  "Extra large": { hi: "बहुत बड़ा", mr: "खूप मोठी" },
+  "Text size (this phone)": { hi: "अक्षरों का आकार (यह फ़ोन)", mr: "अक्षरांचा आकार (हा फोन)" },
 };

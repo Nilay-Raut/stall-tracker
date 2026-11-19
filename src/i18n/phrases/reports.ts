@@ -174,4 +174,8 @@ export const reports: Phrases = {
     hi: "पिछली खरीद {from} से {amount} कम।",
     mr: "मागच्या खरेदीपेक्षा {from} {amount} कमी.",
   },
+
+  // Added: drawer cash, expense notes, fixed-cost switch, sounds and reminders
+  "What it was for": { hi: "किस चीज़ के लिए", mr: "कशासाठी" },
+  Note: { hi: "नोट", mr: "टीप" },
 };

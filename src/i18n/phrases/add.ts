@@ -94,4 +94,28 @@ export const add: Phrases = {
     hi: "इस फ़ोन पर एंट्री डालने से पहले ऐप एक बार इंटरनेट के साथ खोलें।",
     mr: "या फोनवर नोंदी करण्याआधी ॲप एकदा इंटरनेटसह उघडा.",
   },
+
+  // Added: drawer cash, expense notes, fixed-cost switch, sounds and reminders
+  "What was it for? (optional)": { hi: "किस चीज़ के लिए? (ज़रूरी नहीं)", mr: "कशासाठी? (ऐच्छिक)" },
+  "e.g. Ice, Repairs, Water": { hi: "जैसे: बर्फ़, मरम्मत, पानी", mr: "उदा. बर्फ, दुरुस्ती, पाणी" },
+  "Used before": { hi: "पहले लिखे हुए", mr: "आधी लिहिलेले" },
+
+  // Added: undo, repeat sale, usual amounts, drawer checks, voice, text size, sharing, restock
+  "2 chai 1 samosa UPI": { hi: "2 chai 1 samosa यूपीआई", mr: "2 chai 1 samosa यूपीआय" },
+  "40 cash": { hi: "40 नकद", mr: "40 रोख" },
+  "Your usual amounts": { hi: "आपकी आम रकम", mr: "तुमच्या नेहमीच्या रकमा" },
+  "gas 900 from pocket": { hi: "गैस 900 जेब से", mr: "गॅस 900 खिशातून" },
+  "Allow the microphone for this app to speak entries.": {
+    hi: "बोलकर एंट्री के लिए इस ऐप को माइक की अनुमति दें।",
+    mr: "बोलून नोंदीसाठी या ॲपला मायक्रोफोनची परवानगी द्या.",
+  },
+  "Speaking needs internet. Type it instead.": {
+    hi: "बोलने के लिए इंटरनेट चाहिए। टाइप कर दें।",
+    mr: "बोलण्यासाठी इंटरनेट लागते. टाइप करा.",
+  },
+  "Did not catch that. Try again.": { hi: "समझ नहीं आया। फिर से बोलें।", mr: "समजले नाही. पुन्हा बोला." },
+  "Listening… tap to stop": { hi: "सुन रहे हैं… रोकने के लिए दबाएँ", mr: "ऐकत आहे… थांबवण्यासाठी दाबा" },
+  "Say it": { hi: "बोलकर लिखें", mr: "बोलून लिहा" },
+  "Heard: “{text}”": { hi: "सुना: “{text}”", mr: "ऐकले: “{text}”" },
+  "For example: {example}": { hi: "जैसे: {example}", mr: "उदा. {example}" },
 };

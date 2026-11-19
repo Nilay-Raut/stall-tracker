@@ -3,7 +3,9 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { businessDate, shiftDate } from "@/lib/dates";
-import { type MarkOffResult, setShopClosed } from "@/server/days";
+import { MAX_ENTRY_AMOUNT } from "@/domain/entry";
+import { parseRupeeInput } from "@/lib/money";
+import { type MarkOffResult, setOpeningCash, setShopClosed } from "@/server/days";
 import { requireShop } from "@/server/queries/shop";
 
 const dateSchema = z.iso.date();
@@ -21,4 +23,14 @@ export async function markShopClosed(
   const result = await setShopClosed(shop.id, date, off);
   refresh();
   return result;
+}
+
+/** Morning check on Today: the cash really in the drawer as today starts. */
+export async function setTodayOpeningCash(rupees: string): Promise<"ok" | "bad-amount"> {
+  const shop = await requireShop();
+  const amount = rupees.trim() === "" ? 0 : parseRupeeInput(rupees);
+  if (amount === null || amount < 0 || amount > MAX_ENTRY_AMOUNT) return "bad-amount";
+  await setOpeningCash(shop.id, businessDate(), amount);
+  refresh();
+  return "ok";
 }

@@ -12,6 +12,7 @@ import { Suspense } from "react";
 import { InstallHint } from "@/components/feature/InstallHint";
 import { LogoutButton } from "@/components/feature/LogoutButton";
 import { ReminderToggle } from "@/components/feature/ReminderToggle";
+import { SoundToggle } from "@/components/feature/SoundToggle";
 import { ShopMark } from "@/components/ui/AppBar";
 import { type Translate, translator } from "@/i18n/translate";
 import { formatClock } from "@/lib/dates";
@@ -101,6 +102,7 @@ async function SettingsContent() {
       </Group>
 
       <ReminderToggle publicKey={reminderPublicKey()} closingTime={formatClock(shop.closingTime)} />
+      <SoundToggle />
       <InstallHint />
       <LogoutButton />
     </>

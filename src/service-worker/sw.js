@@ -115,7 +115,7 @@ self.addEventListener("message", (event) => {
   );
 });
 
-// ---------- Closing-time reminder ----------
+// ---------- Closing-time reminder (and the follow-up an hour later) ----------
 
 self.addEventListener("push", (event) => {
   let data = {};
@@ -130,6 +130,10 @@ self.addEventListener("push", (event) => {
       icon: "/icon-192.png",
       badge: "/icon-192.png",
       tag: "closing-reminder", // a newer reminder replaces an older one
+      renotify: true, // ...and still rings and vibrates instead of replacing it silently
+      requireInteraction: true, // stays on screen until tapped or dismissed
+      silent: false, // the phone's own notification sound (browsers allow no custom sound)
+      vibrate: [300, 120, 300, 120, 300],
       data: { url: data.url || "/close/today" },
     }),
   );

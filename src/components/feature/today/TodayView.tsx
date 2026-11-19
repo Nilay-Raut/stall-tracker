@@ -2,8 +2,10 @@
 
 import { AppLink } from "@/components/ui/AppLink";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePendingClose } from "@/client/closes";
+import { useDaySwipe } from "@/client/gestures";
+import { playCue } from "@/client/sound";
 import { useDayView, useToday } from "@/client/localStore";
 import { storeOfflineScreens } from "@/client/online";
 import { InstallHint } from "@/components/feature/InstallHint";
@@ -12,8 +14,16 @@ import { Notice } from "@/components/ui/Notice";
 import { computeClose } from "@/domain/dayClose";
 import { useLang, useT } from "@/i18n/client";
 import { computeDayTotals } from "@/domain/dayTotals";
-import { businessTime, formatClock, formatDayLabel } from "@/lib/dates";
+import {
+  type BusinessDate,
+  businessTime,
+  formatClock,
+  formatDayLabel,
+  shiftDate,
+} from "@/lib/dates";
 import { ENTRY_PATHS } from "@/lib/labels";
+import { MorningCheck } from "./MorningCheck";
+import { RestockNudge } from "./RestockNudge";
 import { SyncLine } from "./SyncLine";
 
 /**
@@ -28,6 +38,7 @@ export function TodayView() {
   const clock = useClock();
   const t = useT();
   const lang = useLang();
+  useDaySwipe(today, today); // swipe right: yesterday
 
   // Load the add screens now, while there is internet, so "+ Sale" still opens
   // if the connection drops a moment later.
@@ -100,12 +111,34 @@ export function TodayView() {
       : null);
   const closingTime = snapshot.closingTime;
   const pastClosing = !!closingTime && closedProfit === null && clock >= closingTime;
+  // Morning drawer check: a shop that enters sales, before its first entry of the day.
+  const morningCheckDue =
+    closedProfit === null && snapshot.salesMode !== "totals" && view.entries.length === 0;
+  // An earlier day with entries that was never closed (from the server; gone once closed).
+  const unclosed =
+    snapshot.unclosedDate && today && snapshot.unclosedDate < today ? snapshot.unclosedDate : null;
 
   return (
     <>
       {header}
       <SyncLine />
       <InstallHint />
+      <TodaySounds today={today} entries={view.entries} pastClosing={pastClosing} />
+      {unclosed && (
+        <AppLink
+          href={`/close?date=${unclosed}`}
+          className="flex items-center justify-between gap-3 rounded-card bg-warn-bg px-3.5 py-3 text-warn-ink"
+        >
+          <span className="text-sm font-bold">
+            {unclosed === shiftDate(today ?? unclosed, -1)
+              ? t("Yesterday was not closed. Close it now.")
+              : t("{day} was not closed. Close it now.", {
+                  day: formatDayLabel(unclosed, lang),
+                })}
+          </span>
+          <span aria-hidden>›</span>
+        </AppLink>
+      )}
       {pastClosing && (
         <AppLink
           href="/close/today"
@@ -119,6 +152,12 @@ export function TodayView() {
           <span aria-hidden>›</span>
         </AppLink>
       )}
+      {today && snapshot.date === today && snapshot.close && morningCheckDue && (
+        <MorningCheck today={today} openingCash={snapshot.close.openingCash} />
+      )}
+      {today && snapshot.date === today && closedProfit === null && (
+        <RestockNudge today={today} hints={snapshot.restock ?? []} />
+      )}
       <DaySheet
         date={today ?? snapshot.date}
         isToday
@@ -129,9 +168,58 @@ export function TodayView() {
         closedProfit={closedProfit}
         dailyTarget={snapshot.date === today ? (snapshot.dailyTarget ?? null) : null}
         closedPending={serverProfit === null && localClose !== null}
+        fixedInProfit={snapshot.fixedCostInDailyProfit ?? true}
+        openingCash={snapshot.date === today ? (snapshot.close?.openingCash ?? null) : null}
       />
     </>
   );
+}
+
+const ALERT_KEY = "stall-closing-alert";
+
+/**
+ * Sounds while Today is open: a chime when a UPI payment adds a sale by itself,
+ * and one alert a day when closing time comes and the day is still open.
+ */
+function TodaySounds({
+  today,
+  entries,
+  pastClosing,
+}: {
+  today: BusinessDate | null;
+  entries: ReadonlyArray<{ id: string; paidVia?: string | null }>;
+  pastClosing: boolean;
+}) {
+  // Payment sales seen so far; null until the first list, which must not chime.
+  const seen = useRef<Set<string> | null>(null);
+  const paidIds = entries.filter((e) => e.paidVia).map((e) => e.id);
+  const paidKey = paidIds.join(",");
+  useEffect(() => {
+    const ids = paidKey ? paidKey.split(",") : [];
+    const before = seen.current;
+    seen.current = new Set(ids);
+    if (before && ids.some((id) => !before.has(id))) playCue("payment");
+  }, [paidKey]);
+
+  useEffect(() => {
+    if (!pastClosing || !today) return;
+    let played: string | null = null;
+    try {
+      played = localStorage.getItem(ALERT_KEY);
+    } catch {
+      // Storage blocked: may alert again after a reload, which is fine.
+    }
+    if (played === today) return;
+    if (playCue("alert")) {
+      try {
+        localStorage.setItem(ALERT_KEY, today);
+      } catch {
+        // see above
+      }
+    }
+  }, [pastClosing, today]);
+
+  return null;
 }
 
 /** India time as "HH:MM", updated every minute (for the closing-time banner). */

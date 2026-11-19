@@ -37,6 +37,7 @@ async function SetupContent() {
         openingCash: paiseToInput(shop.defaultOpeningCash),
         salesMode: shop.salesMode,
         costs: costs.map((c) => ({ name: c.name, amount: paiseToInput(c.monthlyAmount) })),
+        fixedInDailyProfit: shop.fixedCostInDailyProfit,
       }
     : {
         name: "",
@@ -45,6 +46,7 @@ async function SetupContent() {
         openingCash: "",
         salesMode: "totals_items",
         costs: [],
+        fixedInDailyProfit: true,
       };
 
   return (

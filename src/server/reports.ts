@@ -246,6 +246,8 @@ export type SpendEntry = {
   date: BusinessDate;
   amount: number;
   paidFrom: PaidFrom | null;
+  /** What an "Other" expense was for, if typed. */
+  note: string | null;
   material: string | null;
   supplier: string | null;
   quantity: number | null;
@@ -265,6 +267,7 @@ export async function spendEntries(
       date: entries.businessDate,
       amount: entries.amount,
       paidFrom: entries.paidFrom,
+      note: entries.note,
       material: materials.name,
       supplier: suppliers.name,
       quantityMilli: purchases.quantityMilli,
@@ -315,6 +318,7 @@ export async function exportEntries(
       paymentMode: entries.paymentMode,
       category: entries.category,
       paidFrom: entries.paidFrom,
+      note: entries.note,
       material: materials.name,
       supplier: suppliers.name,
       quantityMilli: purchases.quantityMilli,

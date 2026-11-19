@@ -1,7 +1,7 @@
 import "server-only";
 import { plateCountsFromBills } from "@/domain/bill";
 import { takesSaleEntries } from "@/domain/entry";
-import { and, asc, desc, eq, gte, isNotNull, lt, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, lt, lte } from "drizzle-orm";
 import type { CloseInput } from "@/domain/dayClose";
 import { type DayTotals, computeDayTotals } from "@/domain/dayTotals";
 import type { PlateCount } from "@/domain/plates";
@@ -44,6 +44,32 @@ async function carriedOverCash(shop: Shop, date: BusinessDate): Promise<number> 
   return previous?.countedCash ?? shop.defaultOpeningCash;
 }
 
+/**
+ * The latest day of the past week that has entries but was never closed (nor
+ * marked "shop closed"), or null. Today shows a banner asking to close it.
+ */
+export async function lastUnclosedDay(
+  shopId: string,
+  today: BusinessDate,
+): Promise<BusinessDate | null> {
+  const [row] = await getDb()
+    .select({ date: days.businessDate })
+    .from(days)
+    .where(
+      and(
+        eq(days.shopId, shopId),
+        eq(days.status, "open"),
+        isNull(days.closedAt),
+        gt(days.entryCount, 0),
+        lt(days.businessDate, today),
+        gte(days.businessDate, shiftDate(today, -7)),
+      ),
+    )
+    .orderBy(desc(days.businessDate))
+    .limit(1);
+  return row?.date ?? null;
+}
+
 export type CloseContext = {
   date: BusinessDate;
   /** Totals from the entries recorded during the day. */
@@ -83,7 +109,9 @@ export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<C
     entered: computeDayTotals(entries, row?.fixedCost ?? fixedCost),
     cashSaleCount: sales.filter((e) => e.paymentMode === "cash").length,
     upiSaleCount: sales.filter((e) => e.paymentMode === "upi").length,
-    openingCash: previousClose?.openingCash ?? (await carriedOverCash(shop, date)),
+    // Counted at close, else counted in the morning check, else carried over.
+    openingCash:
+      previousClose?.openingCash ?? row?.openingCash ?? (await carriedOverCash(shop, date)),
     previousClose,
     plateItems: items.map((item) => ({
       id: item.id,
@@ -101,6 +129,24 @@ export async function getCloseContext(shop: Shop, date: BusinessDate): Promise<C
  * Saves the closing figures and plate counts and recomputes the day, all in one
  * transaction. `plateCounts` null means "not counted": earlier counts are cleared.
  */
+/**
+ * The cash the owner counted in the drawer at the start of a day (the morning
+ * check on Today). A day already closed keeps the opening cash of its close.
+ */
+export async function setOpeningCash(shopId: string, date: BusinessDate, openingCash: number) {
+  await getDb().transaction(async (tx) => {
+    await tx
+      .insert(days)
+      .values({ shopId, businessDate: date, openingCash })
+      .onConflictDoUpdate({
+        target: [days.shopId, days.businessDate],
+        set: { openingCash },
+        setWhere: isNull(days.closedAt),
+      });
+    await recomputeDay(tx, shopId, date); // a new row needs its fixed cost
+  });
+}
+
 export async function saveClose(
   shopId: string,
   date: BusinessDate,

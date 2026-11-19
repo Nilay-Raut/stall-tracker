@@ -1,7 +1,9 @@
 import { type DBSchema, type IDBPDatabase, deleteDB, openDB } from "idb";
 import type { CloseInput } from "@/domain/dayClose";
 import type { Entry } from "@/domain/entry";
+import type { NoteHint } from "@/domain/expenseNotes";
 import type { MaterialHint } from "@/domain/materials";
+import type { RestockHint } from "@/domain/restock";
 import type { BusinessDate, Lang } from "@/lib/dates";
 import type { Paise } from "@/lib/money";
 import type { SalesMode } from "@/domain/entry";
@@ -46,6 +48,16 @@ export type ShopSnapshot = {
   /** Last rate of each material and known suppliers, for the expense form (Phase 7). */
   materials?: MaterialHint[];
   suppliers?: string[];
+  /** Notes of past "Other" expenses, for quick add on the expense form. */
+  expenseNotes?: NoteHint[];
+  /** False when the owner keeps fixed costs out of Today's profit (missing = true). */
+  fixedCostInDailyProfit?: boolean;
+  /** Latest earlier day with entries that was never closed, for a banner on Today. */
+  unclosedDate?: BusinessDate | null;
+  /** Sale amounts typed most lately, for one-tap buttons on Add sale. */
+  quickAmounts?: Paise[];
+  /** Materials usually bought by now, for a nudge on Today. */
+  restock?: RestockHint[];
 };
 
 /** A change waiting to reach the server. One row per entry: the latest version. */

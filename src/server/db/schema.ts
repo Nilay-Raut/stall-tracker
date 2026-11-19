@@ -87,6 +87,15 @@ export const shops = pgTable(
     salesMode: salesMode("sales_mode").notNull().default("totals_items"),
     reminderEnabled: boolean("reminder_enabled").notNull().default(false),
     lastReminderDate: date("last_reminder_date"),
+    /** India time the closing-time reminder went out on lastReminderDate (the follow-up waits an hour). */
+    lastReminderTime: time("last_reminder_time"),
+    /** The day the "still not closed" follow-up reminder went out, if any. */
+    lastFollowUpDate: date("last_follow_up_date"),
+    /**
+     * Whether Today takes the day's share of the monthly fixed costs out of its
+     * profit. Off: Today shows sales − expenses. Reports and Target always count them.
+     */
+    fixedCostInDailyProfit: boolean("fixed_cost_in_daily_profit").notNull().default(true),
     /** Brand colour chosen in Settings, "#rrggbb" (lower case). Null = the app's green. */
     accentColor: text("accent_color"),
     createdAt,
@@ -169,6 +178,8 @@ export const entries = pgTable(
     paymentMode: paymentMode("payment_mode"),
     category: expenseCategory("category"),
     paidFrom: paidFrom("paid_from"),
+    /** Expenses only, optional: what an "Other" expense was for ("Ice", "Repairs"). */
+    note: text("note"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     /** Phone time of the last change. The latest change wins. */
     clientUpdatedAt: timestamp("client_updated_at", { withTimezone: true }).notNull(),
@@ -181,6 +192,7 @@ export const entries = pgTable(
   (t) => [
     index("entries_shop_date_idx").on(t.shopId, t.businessDate),
     check("entries_amount_positive", sql`${t.amount} > 0`),
+    check("entries_note_length", sql`char_length(${t.note}) <= 40`),
   ],
 );
 

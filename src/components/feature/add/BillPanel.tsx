@@ -20,6 +20,8 @@ import { formatDayLabel, formatTime } from "@/lib/dates";
 import { type Paise, formatRupees, parseRupeeInput } from "@/lib/money";
 import { Footer, PaymentChoice } from "./FormParts";
 import type { useEntryEditor } from "./useEntryEditor";
+import { VoiceButton } from "./VoiceButton";
+import { parseSpoken } from "@/domain/spoken";
 
 type Item = { id: string; name: string; price: Paise };
 type Line = SaleLine & { key: string };
@@ -78,6 +80,28 @@ export function BillPanel({ editor, existing, payment, onPayment, items, shopNam
   const addCustom = (line: SaleLine) =>
     setLines((all) => [...all, { ...line, key: `custom-${crypto.randomUUID()}` }]);
 
+  // "2 chai 1 samosa UPI": adds the items named, with how many of each.
+  const heard = (text: string) => {
+    const spoken = parseSpoken(text, items);
+    if (spoken.payment) onPayment(spoken.payment);
+    setLines((all) => {
+      let next = [...all];
+      for (const line of spoken.lines) {
+        const have = next.find((l) => l.itemId === line.itemId);
+        if (have) {
+          next = next.map((l) =>
+            l === have
+              ? { ...l, quantity: Math.min(l.quantity + line.quantity, MAX_LINE_QUANTITY) }
+              : l,
+          );
+        } else if (next.length < MAX_BILL_LINES) {
+          next.push({ ...line, key: line.itemId ?? `custom-${crypto.randomUUID()}` });
+        }
+      }
+      return next;
+    });
+  };
+
   const shown = query.trim()
     ? items.filter((i) => i.name.toLowerCase().includes(query.trim().toLowerCase()))
     : items;
@@ -119,6 +143,7 @@ export function BillPanel({ editor, existing, payment, onPayment, items, shopNam
           {formatRupees(total)}
         </output>
       </div>
+      {items.length > 0 && <VoiceButton onHeard={heard} example={t("2 chai 1 samosa UPI")} />}
 
       {items.length >= SEARCH_FROM && (
         <label className="flex h-11 items-center gap-2 rounded-full glass-soft px-4">

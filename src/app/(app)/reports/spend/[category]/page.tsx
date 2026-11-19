@@ -64,6 +64,7 @@ async function SpendContent({
   const total = list.reduce((sum, e) => sum + e.amount, 0);
   const bySupplier = groupBy(list, (e) => e.supplier);
   const byMaterial = groupBy(list, (e) => e.material);
+  const byNote = groupBy(list, (e) => e.note);
 
   return (
     <>
@@ -83,6 +84,7 @@ async function SpendContent({
         </span>
       </Card>
 
+      {byNote.length > 0 && <Groups title={t("What it was for")} groups={byNote} t={t} />}
       {byMaterial.length > 0 && <Groups title={t("By material")} groups={byMaterial} t={t} />}
       {bySupplier.length > 0 && <Groups title={t("By supplier")} groups={bySupplier} t={t} />}
 
@@ -102,7 +104,7 @@ async function SpendContent({
                   ? e.quantity !== null && e.unit
                     ? `${e.material} · ${e.quantity.toLocaleString("en-IN")} ${unitName(e.unit, t)}`
                     : e.material
-                  : t(CATEGORY_LABELS[category])}
+                  : e.note || t(CATEGORY_LABELS[category])}
               </span>
               <span className="truncate text-xs text-muted">
                 {[
