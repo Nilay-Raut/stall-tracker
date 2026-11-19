@@ -21,7 +21,7 @@ import { type Paise, formatRupees, parseRupeeInput } from "@/lib/money";
 import { Footer, PaymentChoice } from "./FormParts";
 import type { useEntryEditor } from "./useEntryEditor";
 import { VoiceButton } from "./VoiceButton";
-import { parseSpoken } from "@/domain/spoken";
+import { pickSpoken } from "@/domain/spoken";
 
 type Item = { id: string; name: string; price: Paise };
 type Line = SaleLine & { key: string };
@@ -81,8 +81,10 @@ export function BillPanel({ editor, existing, payment, onPayment, items, shopNam
     setLines((all) => [...all, { ...line, key: `custom-${crypto.randomUUID()}` }]);
 
   // "2 chai 1 samosa UPI": adds the items named, with how many of each.
-  const heard = (text: string) => {
-    const spoken = parseSpoken(text, items);
+  const heard = (guesses: string[]) => {
+    const found = pickSpoken(guesses, items, (s) => s.lines.length > 0);
+    if (!found) return null;
+    const { spoken } = found;
     if (spoken.payment) onPayment(spoken.payment);
     setLines((all) => {
       let next = [...all];
@@ -100,6 +102,7 @@ export function BillPanel({ editor, existing, payment, onPayment, items, shopNam
       }
       return next;
     });
+    return found.text;
   };
 
   const shown = query.trim()

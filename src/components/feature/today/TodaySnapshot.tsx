@@ -5,6 +5,8 @@ import { fixedCostForDate, getDayEntries } from "@/server/entries";
 import { logoVersion } from "@/server/brand";
 import { getExpenseNoteHints } from "@/server/expenseNotes";
 import { getQuickAmounts, getRestockHints } from "@/server/hints";
+import { upiBalanceAtStart } from "@/server/upiBalance";
+import { getFixedCostsMonth } from "@/server/fixedPaid";
 import { listItems } from "@/server/items";
 import { isConnected, listConnections } from "@/server/payments/connections";
 import { paymentsAvailable } from "@/server/payments/secretBox";
@@ -34,6 +36,8 @@ export async function TodaySnapshot() {
     unclosedDate,
     quickAmounts,
     restock,
+    upiStart,
+    fixedCostsMonth,
   ] = await Promise.all([
     getDayEntries(shop.id, date, { withDeleted: true }),
     fixedCostForDate(getDb(), shop.id, date),
@@ -47,6 +51,8 @@ export async function TodaySnapshot() {
     lastUnclosedDay(shop.id, date),
     getQuickAmounts(shop.id, date),
     getRestockHints(shop.id, date),
+    upiBalanceAtStart(shop, date),
+    getFixedCostsMonth(shop.id, date, { beforeDate: true }),
   ]);
   const connections = paymentsAvailable() ? await listConnections(shop.id) : [];
 
@@ -80,6 +86,8 @@ export async function TodaySnapshot() {
         unclosedDate,
         quickAmounts,
         restock,
+        upiStart,
+        fixedCostsMonth,
       }}
       entries={entries}
     />

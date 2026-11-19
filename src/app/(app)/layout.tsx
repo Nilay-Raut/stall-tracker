@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 import { SyncRunner } from "@/components/feature/SyncRunner";
 import { UndoToast } from "@/components/feature/UndoToast";
 
@@ -8,7 +8,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <SyncRunner />
       {children}
-      <UndoToast />
+      {/* Reads the address (the bar shows only on its own screen): needs a boundary. */}
+      <Suspense fallback={null}>
+        <UndoToast />
+      </Suspense>
     </>
   );
 }

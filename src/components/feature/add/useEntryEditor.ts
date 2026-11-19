@@ -30,8 +30,9 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
   const [error, setError] = useState<string | null>(null);
 
   // Back to where the entry belongs: Today, or the screen of its (earlier) day.
+  const landing = () => (date === businessDate() ? "/" : `/day/${date}`);
   const done = () => {
-    const target = date === businessDate() ? "/" : `/day/${date}`;
+    const target = landing();
     // Offline, a plain page load is answered by the service worker's stored copy.
     if (navigator.onLine) router.push(target);
     else window.location.assign(target);
@@ -79,6 +80,7 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
           type: entry.type,
           amount: entry.amount,
           restore: existing ?? { ...entry, deleted: true },
+          where: landing(),
         });
       },
     );
@@ -94,6 +96,7 @@ export function useEntryEditor(existing: Entry | null, initialDate: BusinessDate
           type: existing.type,
           amount: existing.amount,
           restore: { ...existing, deleted: false },
+          where: landing(),
         }),
     );
   };

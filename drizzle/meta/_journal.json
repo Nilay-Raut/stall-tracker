@@ -92,6 +92,20 @@
       "when": 1795087842081,
       "tag": "0012_reminder_time",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795104482318,
+      "tag": "0013_upi_balance_deposit",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795105419382,
+      "tag": "0014_fixed_paid",
+      "breakpoints": true
     }
   ]
 }

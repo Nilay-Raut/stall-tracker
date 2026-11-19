@@ -15,7 +15,10 @@ import { ReminderToggle } from "@/components/feature/ReminderToggle";
 import { SoundToggle } from "@/components/feature/SoundToggle";
 import { ShopMark } from "@/components/ui/AppBar";
 import { type Translate, translator } from "@/i18n/translate";
-import { formatClock } from "@/lib/dates";
+import { leftToPay } from "@/domain/fixedPaid";
+import { businessDate, formatClock } from "@/lib/dates";
+import { formatRupees } from "@/lib/money";
+import { getFixedCostsMonth } from "@/server/fixedPaid";
 import { providerName } from "@/lib/paymentProviders";
 import { listItems } from "@/server/items";
 import { isConnected, listConnections } from "@/server/payments/connections";
@@ -37,9 +40,10 @@ export default function SettingsPage() {
 async function SettingsContent() {
   const shop = await requireShop();
   const t = translator(shop.language);
-  const [items, connections] = await Promise.all([
+  const [items, connections, fixedMonth] = await Promise.all([
     listItems(shop.id),
     paymentsAvailable() ? listConnections(shop.id) : [],
+    getFixedCostsMonth(shop.id, businessDate()),
   ]);
   const connectedNames = connections.filter(isConnected).map((c) => providerName(c.provider));
   const activeItems = items.filter((item) => item.active).length;
@@ -91,6 +95,45 @@ async function SettingsContent() {
           note={t("Set a profit goal and track it")}
         />
       </Group>
+
+      {fixedMonth.length > 0 && (
+        <Group title={t("Fixed costs this month")}>
+          {fixedMonth.map((row) => {
+            const left = leftToPay(row);
+            return (
+              <div
+                key={row.name}
+                className="flex min-h-14 items-center justify-between gap-3 border-t border-line px-4 py-2 first:border-t-0"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[15px] font-bold">{row.name}</span>
+                  <span className="text-xs text-muted">
+                    {t("{paid} paid of {monthly}", {
+                      paid: formatRupees(row.paid),
+                      monthly: formatRupees(row.monthly),
+                    })}
+                  </span>
+                </span>
+                <span
+                  className={
+                    left === 0
+                      ? "shrink-0 rounded-full bg-accent-soft px-3 py-1 text-xs font-bold text-accent-fg"
+                      : "shrink-0 rounded-full bg-warn-bg px-3 py-1 text-xs font-bold text-warn-ink"
+                  }
+                >
+                  {left === 0 ? t("Paid") : t("{amount} left", { amount: formatRupees(left) })}
+                </span>
+              </div>
+            );
+          })}
+          <Link
+            href="/add/fixed-cost"
+            className="flex min-h-12 press items-center justify-center border-t border-line text-sm font-bold underline"
+          >
+            {t("Pay a fixed cost")}
+          </Link>
+        </Group>
+      )}
 
       <Group title={t("App")}>
         <Row

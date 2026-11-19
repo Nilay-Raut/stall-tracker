@@ -45,10 +45,10 @@ test("the morning check fixes the opening cash, and the drawer can be counted", 
   await page.getByLabel("Cash in the drawer now (₹)").fill("1200");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText(/Start of day/)).toHaveCount(0);
-  await expect(amountFor(page, "Cash in drawer now")).toContainText("₹1,200");
+  await expect(amountFor(page, "Cash in drawer")).toContainText("₹1,200");
 
   await addSale(page, 300, "Cash");
-  await expect(amountFor(page, "Cash in drawer now")).toContainText("₹1,500");
+  await expect(amountFor(page, "Cash in drawer")).toContainText("₹1,500");
   await page.getByRole("button", { name: "Count the drawer now" }).click();
   await page.getByLabel("Cash counted in the drawer now (₹)").fill("1450");
   await expect(page.getByText("₹50 short. An expense or cash out may be missing.")).toBeVisible();
@@ -58,7 +58,7 @@ test("the morning check fixes the opening cash, and the drawer can be counted", 
   // The close starts from the corrected opening cash too.
   await page.reload();
   await expect(page.getByText(/Start of day/)).toHaveCount(0); // asked once a day
-  await expect(amountFor(page, "Cash in drawer now")).toContainText("₹1,500");
+  await expect(amountFor(page, "Cash in drawer")).toContainText("₹1,500");
 });
 
 test("holding an entry deletes it, and swiping goes to yesterday", async ({ page }) => {
@@ -113,36 +113,74 @@ test("text can be made bigger on this phone", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test("a sale and an expense can be spoken", async ({ page }) => {
-  // A stand-in recogniser that "hears" whatever the test puts in window.__say.
+type Say = { guesses: string[]; mode?: "final" | "interim-only" | "silent" | "hiccup" };
+
+/** What the stand-in recogniser will "hear" on the next tap of Say it. */
+const say = (page: Page, value: Say) =>
+  page.evaluate((v) => {
+    const w = window as unknown as { __say: Say; __starts: number };
+    w.__say = v;
+    w.__starts = 0;
+  }, value);
+
+/**
+ * A stand-in for Chrome's recogniser: words while speaking, then every guess at the
+ * end; or the ways phones misbehave: silence, ending at once, never marking final.
+ */
+async function fakeRecogniser(page: Page) {
   await page.addInitScript(() => {
+    type W = { __say: Say; __starts: number };
     class FakeRecognition {
       lang = "";
       interimResults = false;
+      continuous = false;
       maxAlternatives = 1;
       onresult: ((e: unknown) => void) | null = null;
       onerror: ((e: unknown) => void) | null = null;
       onend: (() => void) | null = null;
       start() {
+        const w = window as unknown as W;
+        w.__starts += 1;
+        const { guesses, mode = "final" } = w.__say;
+        const result = (texts: string[], isFinal: boolean) =>
+          Object.assign(
+            texts.map((transcript) => ({ transcript })),
+            { isFinal },
+          );
         setTimeout(() => {
-          const said = (window as unknown as { __say: string }).__say;
-          this.onresult?.({ results: [[{ transcript: said }]] });
-          this.onend?.();
-        }, 50);
+          if (mode === "hiccup" && w.__starts === 1) return this.onend?.(); // ends at once
+          if (mode === "silent") {
+            this.onerror?.({ error: "no-speech" });
+            return this.onend?.();
+          }
+          this.onresult?.({ results: [result([guesses[0]], false)] });
+          setTimeout(() => {
+            if (mode !== "interim-only") {
+              this.onresult?.({ results: [result(guesses.slice(0, this.maxAlternatives), true)] });
+            }
+            this.onend?.();
+          }, 60);
+        }, 40);
       }
       abort() {
+        this.onerror?.({ error: "aborted" });
         this.onend?.();
       }
     }
-    // Chrome has both names; the app uses whichever exists.
     const w = window as unknown as Record<string, unknown>;
-    w.SpeechRecognition = FakeRecognition;
+    w.__starts = 0;
+    w.SpeechRecognition = FakeRecognition; // Chrome has both names
     w.webkitSpeechRecognition = FakeRecognition;
   });
+}
+
+test("a sale and an expense can be spoken", async ({ page }) => {
+  await fakeRecogniser(page);
   await newShop(page);
 
+  // The phone's top guess has no number; the second one does, and is used.
   await page.getByRole("link", { name: "+ Sale" }).click();
-  await page.evaluate(() => ((window as unknown as { __say: string }).__say = "60 UPI"));
+  await say(page, { guesses: ["sixty UPI", "60 UPI"] });
   await page.getByRole("button", { name: "Say it" }).click();
   await expect(page.getByText("Heard: “60 UPI”")).toBeVisible();
   await expect(page.locator("output").filter({ hasText: "₹60" })).toBeVisible();
@@ -150,12 +188,12 @@ test("a sale and an expense can be spoken", async ({ page }) => {
   await page.getByRole("button", { name: "Save sale" }).click();
   await expect(page).toHaveURL(/\/$/);
 
+  // The phone ends the first try at once: it starts again by itself.
   await page.getByRole("link", { name: "+ Expense" }).click();
-  await page.evaluate(
-    () => ((window as unknown as { __say: string }).__say = "gas 900 from pocket"),
-  );
+  await say(page, { guesses: ["gas 900 from pocket"], mode: "hiccup" });
   await page.getByRole("button", { name: "Say it" }).click();
   await expect(page.getByLabel("Amount")).toHaveValue("900");
+  expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts)).toBe(2);
   const category = page.getByRole("radiogroup", { name: "Category" });
   await expect(category.getByRole("radio", { name: "Gas" })).toHaveAttribute(
     "aria-checked",
@@ -166,6 +204,30 @@ test("a sale and an expense can be spoken", async ({ page }) => {
     "aria-checked",
     "true",
   );
+});
+
+test("speaking says clearly when it heard nothing or did not understand", async ({ page }) => {
+  await fakeRecogniser(page);
+  await newShop(page);
+  await page.getByRole("link", { name: "+ Sale" }).click();
+
+  await say(page, { guesses: [], mode: "silent" });
+  await page.getByRole("button", { name: "Say it" }).click();
+  await expect(
+    page.getByText("Did not hear anything. Tap, wait a moment, then speak clearly."),
+  ).toBeVisible();
+
+  await say(page, { guesses: ["hello there"] });
+  await page.getByRole("button", { name: "Say it" }).click();
+  await expect(
+    page.getByText("Heard “hello there” but found no amount or item. Try again, or type it."),
+  ).toBeVisible();
+
+  // Some phones end with the words never marked final: they still count.
+  await say(page, { guesses: ["40 cash"], mode: "interim-only" });
+  await page.getByRole("button", { name: "Say it" }).click();
+  await expect(page.getByText("Heard: “40 cash”")).toBeVisible();
+  await expect(page.locator("output").filter({ hasText: "₹40" })).toBeVisible();
 });
 
 test("a closed day can be shared on WhatsApp", async ({ page }) => {

@@ -232,4 +232,28 @@ export const close: Phrases = {
   "UPI {amount}": { hi: "UPI {amount}", mr: "UPI {amount}" },
   "Fixed costs {amount}": { hi: "तय खर्च {amount}", mr: "ठरलेला खर्च {amount}" },
   "Loss {amount}": { hi: "घाटा {amount}", mr: "तोटा {amount}" },
+
+  // Added: stall money and steadier voice entry
+  "Counted at close": { hi: "बंद करते समय गिना", mr: "बंद करताना मोजले" },
+  "UPI total at close, less UPI expenses": {
+    hi: "बंद करते समय UPI कुल, UPI खर्च घटाकर",
+    mr: "बंद करताना UPI एकूण, UPI खर्च वजा करून",
+  },
+  "Stall money at close": { hi: "बंद करते समय स्टॉल का पैसा", mr: "बंद करताना स्टॉलचे पैसे" },
+  "Paid from your own pocket": { hi: "अपनी जेब से दिया", mr: "स्वतःच्या खिशातून दिले" },
+  "The stall owes you this": { hi: "यह स्टॉल को आपको लौटाना है", mr: "हे स्टॉलने तुम्हाला परत द्यायचे आहे" },
+  "Stall money {amount}": { hi: "स्टॉल का पैसा {amount}", mr: "स्टॉलचे पैसे {amount}" },
+  "Paid from own pocket {amount}": {
+    hi: "अपनी जेब से दिया {amount}",
+    mr: "स्वतःच्या खिशातून दिले {amount}",
+  },
+
+  // Added: UPI account balance and cash to bank
+  "Balance at close, from the day's entries": {
+    hi: "बंद करते समय बैलेंस, दिन की एंट्री से",
+    mr: "बंद करताना शिल्लक, दिवसाच्या नोंदींवरून",
+  },
+
+  // Added: paying fixed costs
+  "Fixed costs paid from the drawer": { hi: "गल्ले से दिया तय खर्च", mr: "गल्ल्यातून दिलेला ठरलेला खर्च" },
 };

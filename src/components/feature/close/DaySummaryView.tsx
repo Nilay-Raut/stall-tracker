@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import type { PlateInsight } from "@/domain/plates";
+import type { StallMoney } from "@/domain/stallMoney";
 import { translator } from "@/i18n/translate";
 import { type BusinessDate, type Lang, formatDayLabel } from "@/lib/dates";
 import { type Paise, formatRupees } from "@/lib/money";
@@ -18,6 +19,8 @@ type Props = {
   notes: SummaryNote[];
   insight: PlateInsight | null;
   dayTarget: Paise | null;
+  /** The stall's money at close (counted cash + the day's UPI), if known. */
+  money?: StallMoney | null;
   /** Shown under the heading, e.g. "Saved on this phone, sent when back online". */
   banner?: ReactNode;
   /** Buttons at the bottom (Edit day, Done). */
@@ -32,7 +35,7 @@ type Props = {
  */
 export function DaySummaryView(props: Props) {
   const { date, sales, cashSales, upiSales, expenses, fixedCost, profit } = props;
-  const { notes, insight, dayTarget, lang = "en" } = props;
+  const { notes, insight, dayTarget, money, lang = "en" } = props;
   const t = translator(lang);
   const breakEven = expenses + fixedCost;
   const crossed = sales >= breakEven;
@@ -90,6 +93,33 @@ export function DaySummaryView(props: Props) {
         />
         <Row label={t("Profit")} value={formatRupees(profit)} strong />
       </Card>
+
+      {money && (
+        <Card className="gap-0 py-1">
+          <Row
+            label={t("Cash in drawer")}
+            note={t("Counted at close")}
+            value={formatRupees(money.cash)}
+          />
+          <Row
+            label={money.upiIsBalance ? t("UPI account") : t("UPI today")}
+            note={
+              money.upiIsBalance
+                ? t("Balance at close, from the day's entries")
+                : t("UPI total at close, less UPI expenses")
+            }
+            value={formatRupees(money.upi)}
+          />
+          <Row label={t("Stall money at close")} value={formatRupees(money.total)} strong />
+          {money.pocket > 0 && (
+            <Row
+              label={t("Paid from your own pocket")}
+              note={t("The stall owes you this")}
+              value={formatRupees(money.pocket)}
+            />
+          )}
+        </Card>
+      )}
 
       {dayTarget !== null && (
         <Card className="gap-2">

@@ -136,7 +136,19 @@ export function CloseForm({ context, action = closeDay, waitForEntries = true }:
           label={t("Expenses paid from drawer")}
           value={`+ ${formatRupees(entered.drawerExpenses)}`}
         />
-        <Line label={t("Cash taken out")} value={`+ ${formatRupees(entered.cashOut)}`} />
+        <Line
+          label={t("Cash taken out of the drawer")}
+          value={`+ ${formatRupees(entered.drawerCashOut)}`}
+        />
+        {entered.deposits > 0 && (
+          <Line label={t("Cash put in the bank")} value={`+ ${formatRupees(entered.deposits)}`} />
+        )}
+        {entered.drawerFixedPaid > 0 && (
+          <Line
+            label={t("Fixed costs paid from the drawer")}
+            value={`+ ${formatRupees(entered.drawerFixedPaid)}`}
+          />
+        )}
         <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
           <span>{t("Cash sales today")}</span>
           <span>{result ? formatRupees(result.cashSales) : "—"}</span>

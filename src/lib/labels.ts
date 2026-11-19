@@ -41,7 +41,17 @@ export function describeEntry(
         note: t(PAID_FROM_NOTES[entry.paidFrom ?? "drawer"]),
       };
     case "cash_out":
-      return { title: t("Cash taken out"), note: t("Owner") };
+      return {
+        title: t("Cash taken out"),
+        note: entry.paidFrom === "upi" ? t("Owner · from UPI") : t("Owner"),
+      };
+    case "deposit":
+      return { title: t("Cash to bank"), note: t("Drawer to UPI account") };
+    case "fixed_paid":
+      return {
+        title: entry.note || t("Fixed cost paid"),
+        note: `${t("Fixed cost")} · ${t(PAID_FROM_NOTES[entry.paidFrom ?? "drawer"])}`,
+      };
   }
 }
 
@@ -50,4 +60,6 @@ export const ENTRY_PATHS = {
   sale: "/add/sale",
   expense: "/add/expense",
   cash_out: "/add/cash-out",
+  deposit: "/add/deposit",
+  fixed_paid: "/add/fixed-cost",
 } as const;

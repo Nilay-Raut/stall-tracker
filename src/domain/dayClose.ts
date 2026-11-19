@@ -14,8 +14,9 @@ export type CloseInput = {
 
 export type CloseResult = {
   /**
-   * Rule 2: cash sales worked out from the drawer:
-   * counted − opening + expenses paid from the drawer + cash taken out.
+   * Rule 2: cash sales worked out from the drawer: counted − opening + expenses
+   * paid from the drawer + cash taken out of the drawer + cash put in the bank
+   * + fixed costs paid from the drawer.
    */
   cashSales: Paise;
   /** Rule 3: drawer cash sales − cash sales entered during the day. */
@@ -34,7 +35,12 @@ export type CloseResult = {
 
 export function computeClose(entered: DayTotals, input: CloseInput): CloseResult {
   const cashSales =
-    input.countedCash - input.openingCash + entered.drawerExpenses + entered.cashOut;
+    input.countedCash -
+    input.openingCash +
+    entered.drawerExpenses +
+    entered.drawerCashOut +
+    entered.deposits +
+    entered.drawerFixedPaid;
   const sales = cashSales + input.upiTotal;
   return {
     cashSales,

@@ -5,7 +5,9 @@ import { z } from "zod";
 import { businessDate, shiftDate } from "@/lib/dates";
 import { MAX_ENTRY_AMOUNT } from "@/domain/entry";
 import { parseRupeeInput } from "@/lib/money";
+import { upiStartFrom } from "@/domain/stallMoney";
 import { type MarkOffResult, setOpeningCash, setShopClosed } from "@/server/days";
+import { setUpiBalance } from "@/server/upiBalance";
 import { requireShop } from "@/server/queries/shop";
 
 const dateSchema = z.iso.date();
@@ -33,4 +35,25 @@ export async function setTodayOpeningCash(rupees: string): Promise<"ok" | "bad-a
   await setOpeningCash(shop.id, businessDate(), amount);
   refresh();
   return "ok";
+}
+
+/**
+ * "My UPI app shows X now" (Today's money card). The phone sends what today has
+ * done to the account so far (it may hold changes not sent yet); the balance at
+ * the start of today is stored, so later entries keep it up to date.
+ */
+export async function setTodayUpiBalance(
+  rupees: string,
+  todayChange: number,
+): Promise<{ start: number } | "bad-amount"> {
+  const shop = await requireShop();
+  const now = parseRupeeInput(rupees);
+  if (now === null || now > MAX_ENTRY_AMOUNT * 10) return "bad-amount";
+  if (!Number.isInteger(todayChange) || Math.abs(todayChange) > MAX_ENTRY_AMOUNT * 100) {
+    return "bad-amount";
+  }
+  const start = upiStartFrom(now, todayChange);
+  await setUpiBalance(shop.id, businessDate(), start);
+  refresh();
+  return { start };
 }

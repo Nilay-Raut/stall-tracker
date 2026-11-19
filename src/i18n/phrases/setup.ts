@@ -140,4 +140,10 @@ export const setup: Phrases = {
     hi: "आज की स्क्रीन पर सिर्फ़ बिक्री घटा खर्च दिखेगा। रिपोर्ट और लक्ष्य में तय खर्च गिना जाता है।",
     mr: "आजच्या स्क्रीनवर फक्त विक्री वजा खर्च दिसेल. अहवाल आणि लक्ष्यात ठरलेला खर्च मोजला जातो.",
   },
+
+  // Added: paying fixed costs
+  "Fixed costs this month": { hi: "इस महीने के तय खर्च", mr: "या महिन्याचे ठरलेले खर्च" },
+  "{paid} paid of {monthly}": { hi: "{monthly} में से {paid} दिया", mr: "{monthly} पैकी {paid} दिले" },
+  Paid: { hi: "दिया गया", mr: "दिले" },
+  "{amount} left": { hi: "{amount} बाकी", mr: "{amount} बाकी" },
 };

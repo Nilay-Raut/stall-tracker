@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowUpRight, HandCoins, type LucideIcon, ReceiptIndianRupee, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarCheck,
+  HandCoins,
+  Landmark,
+  type LucideIcon,
+  ReceiptIndianRupee,
+  X,
+} from "lucide-react";
 import type { Ref } from "react";
 import { useShopSnapshot } from "@/client/localStore";
 import { AppLink } from "@/components/ui/AppLink";
@@ -36,6 +44,20 @@ const OPTIONS: ReadonlyArray<{
     label: msg("Cash out"),
     note: msg("Cash you take for yourself"),
     icon: HandCoins,
+    tone: "bg-surface text-ink",
+  },
+  {
+    type: "deposit",
+    label: msg("Cash to bank"),
+    note: msg("Drawer cash paid into the UPI account"),
+    icon: Landmark,
+    tone: "bg-surface text-ink",
+  },
+  {
+    type: "fixed_paid",
+    label: msg("Pay rent or salary"),
+    note: msg("A monthly fixed cost paid today"),
+    icon: CalendarCheck,
     tone: "bg-surface text-ink",
   },
 ];

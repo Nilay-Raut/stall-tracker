@@ -13,6 +13,7 @@ const TABS: ReadonlyArray<{ type: EntryType; label: string; editTitle: string }>
   { type: "sale", label: msg("Sale"), editTitle: msg("Edit sale") },
   { type: "expense", label: msg("Expense"), editTitle: msg("Edit expense") },
   { type: "cash_out", label: msg("Cash out"), editTitle: msg("Edit cash out") },
+  { type: "deposit", label: msg("To bank"), editTitle: msg("Edit cash to bank") },
 ];
 
 type Props = {
@@ -41,14 +42,18 @@ export function AddShell({ type, date, today, onDateChange, editing, children }:
         <DatePicker date={date} today={today} onChange={onDateChange} />
       </header>
 
-      {editing ? (
+      {editing || !TABS.some((tab) => tab.type === type) ? (
         <h1 className="font-display text-xl font-bold">
-          {t(TABS.find((tab) => tab.type === type)?.editTitle ?? "")}
+          {type === "fixed_paid"
+            ? editing
+              ? t("Edit fixed cost paid")
+              : t("Pay a fixed cost")
+            : t(TABS.find((tab) => tab.type === type)?.editTitle ?? "")}
         </h1>
       ) : (
         <nav
           aria-label={t("Entry type")}
-          className="grid h-12 grid-cols-3 gap-1 rounded-full glass-soft p-1"
+          className="grid h-12 grid-cols-4 gap-1 rounded-full glass-soft p-1"
         >
           {TABS.map((tab) => {
             const active = tab.type === type;
@@ -61,7 +66,7 @@ export function AddShell({ type, date, today, onDateChange, editing, children }:
                 replace
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex press items-center justify-center rounded-full text-sm",
+                  "flex press items-center justify-center rounded-full text-[13px] leading-tight",
                   active ? "bg-ink font-bold text-paper" : "font-semibold text-muted",
                 )}
               >

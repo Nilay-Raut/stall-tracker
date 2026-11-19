@@ -12,6 +12,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { computeClose } from "@/domain/dayClose";
 import { computeDayTotals } from "@/domain/dayTotals";
+import { moneyAtClose } from "@/domain/stallMoney";
 import { plateInsight } from "@/domain/plates";
 import { useLang, useT } from "@/i18n/client";
 import { msg } from "@/i18n/translate";
@@ -147,6 +148,12 @@ export function CloseTodayScreen() {
         fixedCost={result.fixedCost}
         profit={result.profit}
         dayTarget={snapshot.dailyTarget ?? null}
+        money={moneyAtClose(
+          result.cashLeft,
+          shownSummary.input.upiTotal,
+          context.entered,
+          snapshot.upiStart ?? null,
+        )}
         insight={plateInsight(plates)}
         lang={lang}
         notes={summaryNotes(

@@ -309,3 +309,19 @@ export function parseSpoken(text: string, items: ReadonlyArray<SpokenItem> = [])
 /** The language tag for the phone's speech recogniser. */
 export const speechLang = (lang: "en" | "hi" | "mr") =>
   lang === "hi" ? "hi-IN" : lang === "mr" ? "mr-IN" : "en-IN";
+
+/**
+ * The phone's recogniser gives several guesses, best first ("sixty UPI", "60 UPI").
+ * Picks the first one that gives something the form can use.
+ */
+export function pickSpoken(
+  guesses: ReadonlyArray<string>,
+  items: ReadonlyArray<SpokenItem>,
+  usable: (spoken: Spoken) => boolean,
+): { text: string; spoken: Spoken } | null {
+  for (const text of guesses) {
+    const spoken = parseSpoken(text, items);
+    if (usable(spoken)) return { text, spoken };
+  }
+  return null;
+}

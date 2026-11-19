@@ -117,5 +117,66 @@ export const add: Phrases = {
   "Listening… tap to stop": { hi: "सुन रहे हैं… रोकने के लिए दबाएँ", mr: "ऐकत आहे… थांबवण्यासाठी दाबा" },
   "Say it": { hi: "बोलकर लिखें", mr: "बोलून लिहा" },
   "Heard: “{text}”": { hi: "सुना: “{text}”", mr: "ऐकले: “{text}”" },
-  "For example: {example}": { hi: "जैसे: {example}", mr: "उदा. {example}" },
+
+  // Added: stall money and steadier voice entry
+  "Heard “{text}” but found no amount or item. Try again, or type it.": {
+    hi: "“{text}” सुना, पर रकम या आइटम नहीं मिला। फिर बोलें या टाइप करें।",
+    mr: "“{text}” ऐकले, पण रक्कम किंवा आयटम सापडला नाही. पुन्हा बोला किंवा टाइप करा.",
+  },
+  "Did not hear anything. Tap, wait a moment, then speak clearly.": {
+    hi: "कुछ सुनाई नहीं दिया। दबाएँ, एक पल रुकें, फिर साफ़ बोलें।",
+    mr: "काही ऐकू आले नाही. दाबा, क्षणभर थांबा, मग स्पष्ट बोला.",
+  },
+  "The microphone is busy or missing. Close other apps using it.": {
+    hi: "माइक व्यस्त है या नहीं मिला। उसे इस्तेमाल कर रहे दूसरे ऐप बंद करें।",
+    mr: "मायक्रोफोन व्यस्त आहे किंवा सापडला नाही. तो वापरणारी इतर ॲप्स बंद करा.",
+  },
+  "Speak now. For example: {example}": {
+    hi: "अब बोलें। जैसे: {example}",
+    mr: "आता बोला. उदा. {example}",
+  },
+
+  // Added: UPI account balance and cash to bank
+  "To bank": { hi: "बैंक में", mr: "बँकेत" },
+  "Edit cash to bank": { hi: "बैंक में डाला नकद बदलें", mr: "बँकेत भरलेली रोख बदला" },
+  "Amount taken out": { hi: "निकाली रकम", mr: "काढलेली रक्कम" },
+  "Taken from": { hi: "कहाँ से निकाला", mr: "कुठून काढले" },
+  "UPI account": { hi: "UPI खाता", mr: "UPI खाते" },
+  "Cash put in the bank": { hi: "बैंक में डाला नकद", mr: "बँकेत भरलेली रोख" },
+  "Cash from the drawer paid into the stall's UPI/bank account. Not an expense: profit and stall money stay the same.":
+    {
+      hi: "गल्ले का नकद स्टॉल के UPI/बैंक खाते में डाला। यह खर्च नहीं: मुनाफ़ा और स्टॉल का पैसा वही रहता है।",
+      mr: "गल्ल्यातील रोख स्टॉलच्या UPI/बँक खात्यात भरली. हा खर्च नाही: नफा आणि स्टॉलचे पैसे तेवढेच राहतात.",
+    },
+  "Save cash to bank": { hi: "बैंक में डाला सेव करें", mr: "बँकेत भरलेले सेव्ह करा" },
+  "Cash to bank": { hi: "नकद बैंक में", mr: "रोख बँकेत" },
+  "Drawer cash paid into the UPI account": {
+    hi: "गल्ले का नकद UPI खाते में",
+    mr: "गल्ल्यातील रोख UPI खात्यात",
+  },
+
+  // Added: paying fixed costs
+  "Pay a fixed cost": { hi: "तय खर्च का भुगतान", mr: "ठरलेल्या खर्चाचे पेमेंट" },
+  "Edit fixed cost paid": { hi: "दिया गया तय खर्च बदलें", mr: "दिलेला ठरलेला खर्च बदला" },
+  "No fixed costs yet. Add rent and monthly salary in Settings, Shop details.": {
+    hi: "अभी कोई तय खर्च नहीं। किराया और महीने का वेतन सेटिंग्स, दुकान की जानकारी में जोड़ें।",
+    mr: "अजून ठरलेला खर्च नाही. भाडे आणि महिन्याचा पगार सेटिंग्ज, दुकानाची माहिती मध्ये भरा.",
+  },
+  "Which fixed cost": { hi: "कौन सा तय खर्च", mr: "कोणता ठरलेला खर्च" },
+  "{monthly} a month · {paid} paid this month · {left} left": {
+    hi: "{monthly} महीना · इस महीने {paid} दिया · {left} बाकी",
+    mr: "{monthly} महिना · या महिन्यात {paid} दिले · {left} बाकी",
+  },
+  "Amount paid": { hi: "दी गई रकम", mr: "दिलेली रक्कम" },
+  "Already counted in each day's profit, so paying it does not lower profit again. It lowers the stall's money.":
+    {
+      hi: "यह हर दिन के मुनाफ़े में पहले से गिना है, इसलिए भुगतान से मुनाफ़ा फिर नहीं घटता। स्टॉल का पैसा घटता है।",
+      mr: "हे रोजच्या नफ्यात आधीच मोजले आहे, त्यामुळे पेमेंटने नफा पुन्हा कमी होत नाही. स्टॉलचे पैसे कमी होतात.",
+    },
+  "Save payment": { hi: "भुगतान सेव करें", mr: "पेमेंट सेव्ह करा" },
+  "Pay rent or salary": { hi: "किराया या वेतन दें", mr: "भाडे किंवा पगार द्या" },
+  "A monthly fixed cost paid today": {
+    hi: "आज दिया महीने का तय खर्च",
+    mr: "आज दिलेला महिन्याचा ठरलेला खर्च",
+  },
 };

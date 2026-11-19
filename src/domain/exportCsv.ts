@@ -3,7 +3,7 @@ import { type Cell, rupeesCell, toCsv } from "@/lib/csv";
 import { formatTime } from "@/lib/dates";
 import type { Lang } from "@/lib/dates";
 import { CATEGORY_LABELS, PAID_FROM_LABELS, PAYMENT_LABELS } from "@/lib/labels";
-import type { ExpenseCategory, PaidFrom, PaymentMode } from "./entry";
+import type { EntryType, ExpenseCategory, PaidFrom, PaymentMode } from "./entry";
 import type { ReportDay } from "./report";
 
 // The CSV files from Reports > Share or download, in the shop's language.
@@ -57,7 +57,7 @@ export function daysCsv(days: ReportDay[], t: Translate = english): string {
 export type CsvEntry = {
   date: string;
   time: Date;
-  type: "sale" | "expense" | "cash_out";
+  type: EntryType;
   amount: number;
   paymentMode: PaymentMode | null;
   category: ExpenseCategory | null;
@@ -74,6 +74,8 @@ const TYPES: Record<CsvEntry["type"], string> = {
   sale: msg("Sale"),
   expense: msg("Expense"),
   cash_out: msg("Cash taken out"),
+  deposit: msg("Cash to bank"),
+  fixed_paid: msg("Fixed cost paid"),
 };
 
 /** One row per entry, oldest first. Material and supplier are what the owner typed. */

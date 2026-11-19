@@ -3,21 +3,40 @@ import postgres from "postgres";
 import { businessDate, shiftDate } from "../src/lib/dates";
 import { addCashOut, addExpense, addSale, amountFor, newShop } from "./shop";
 
-test("Today shows the cash that should be in the drawer", async ({ page }) => {
+test("Today shows the stall's money: drawer cash plus the day's UPI", async ({ page }) => {
   await newShop(page, { openingCash: 1000 });
 
   await addSale(page, 500, "Cash");
   await addSale(page, 300, "UPI");
   await addExpense(page, 200, "Gas", "Drawer");
-  await addExpense(page, 90, "Packaging", "Own pocket"); // not from the drawer
+  await addExpense(page, 50, "Transport", "UPI");
+  await addExpense(page, 90, "Packaging", "Own pocket"); // never stall money
   await addCashOut(page, 100);
 
-  // 1,000 opening + 500 cash sales − 200 from the drawer − 100 taken out.
-  await expect(amountFor(page, "Cash in drawer now")).toContainText("₹1,200");
-  await expect(amountFor(page, "UPI today")).toContainText("₹300");
+  // Drawer: 1,000 opening + 500 cash sales − 200 from the drawer − 100 taken out.
+  await expect(amountFor(page, "Cash in drawer")).toContainText("₹1,200");
   await expect(
     page.getByText("Opening ₹1,000 + Cash sales ₹500 − Expenses ₹200 − Taken out ₹100"),
   ).toBeVisible();
+  // UPI: 300 in − 50 paid by UPI.
+  await expect(amountFor(page, "UPI today")).toContainText("₹250");
+  await expect(page.getByText("UPI sales ₹300 − Expenses ₹50")).toBeVisible();
+  await expect(amountFor(page, "Stall money now")).toContainText("₹1,450");
+  await expect(
+    page.getByText("Paid from your own pocket today: ₹90. The stall owes you this."),
+  ).toBeVisible();
+
+  // After closing, the summary shows the money at close from the counted figures.
+  await page.getByRole("link", { name: "Close day" }).click();
+  await page.getByLabel("1. Cash in drawer now").fill("1200");
+  await page.getByLabel("2. UPI total").fill("300");
+  await page.getByRole("button", { name: "Close day and see summary" }).click();
+  await expect(page.getByRole("heading", { name: "Day closed" })).toBeVisible();
+  await page.goto(`/summary/${businessDate()}`);
+  await expect(amountFor(page, "Stall money at close")).toContainText("₹1,450");
+  await expect(amountFor(page, "Paid from your own pocket")).toContainText("₹90");
+  const share = await page.getByRole("link", { name: "Share on WhatsApp" }).getAttribute("href");
+  expect(decodeURIComponent(share ?? "")).toContain("Stall money ₹1,450 (Cash ₹1,200 · UPI ₹250)");
 });
 
 test("an Other expense keeps a note and offers it next time", async ({ page }) => {

@@ -4,12 +4,16 @@ import { DaySummaryView } from "@/components/feature/close/DaySummaryView";
 import { MessageCircle } from "lucide-react";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { whatsAppLink } from "@/domain/bill";
+import { computeDayTotals } from "@/domain/dayTotals";
 import { daySummaryMessage } from "@/domain/shareSummary";
+import { moneyAtClose } from "@/domain/stallMoney";
 import { plateInsight } from "@/domain/plates";
 import { translator } from "@/i18n/translate";
 import { businessDate, formatDayLabel } from "@/lib/dates";
 import { summaryNotes } from "@/lib/summaryNotes";
 import { getDaySummary } from "@/server/days";
+import { getDayEntries } from "@/server/entries";
+import { upiBalanceAtStart } from "@/server/upiBalance";
 import { requireShop } from "@/server/queries/shop";
 import { dailySalesTarget } from "@/server/target";
 
@@ -30,14 +34,23 @@ async function SummaryContent({ params }: Pick<PageProps<"/summary/[date]">, "pa
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > businessDate()) redirect("/");
 
-  const [summary, dayTarget] = await Promise.all([
+  const [summary, dayTarget, entries, upiStart] = await Promise.all([
     getDaySummary(shop.id, date),
     dailySalesTarget(shop.id, date),
+    getDayEntries(shop.id, date),
+    upiBalanceAtStart(shop, date),
   ]);
   if (!summary) redirect(`/close?date=${date}`); // not closed yet
 
   const { day, close, plates, lastWeek } = summary;
   const t = translator(shop.language);
+  // Who paid each expense is only on the entries; the day row keeps the totals.
+  const money = moneyAtClose(
+    close.countedCash,
+    close.upiTotal,
+    computeDayTotals(entries, 0),
+    upiStart,
+  );
   return (
     <DaySummaryView
       date={date}
@@ -48,6 +61,7 @@ async function SummaryContent({ params }: Pick<PageProps<"/summary/[date]">, "pa
       fixedCost={day.fixedCost}
       profit={day.profit}
       dayTarget={dayTarget}
+      money={money}
       insight={plateInsight(plates)}
       lang={shop.language}
       notes={summaryNotes(
@@ -76,6 +90,7 @@ async function SummaryContent({ params }: Pick<PageProps<"/summary/[date]">, "pa
                   expenses: day.expenseTotal,
                   fixedCost: day.fixedCost,
                   profit: day.profit,
+                  money,
                 },
                 t,
               ),

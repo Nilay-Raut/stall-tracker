@@ -2,6 +2,7 @@ import { type DBSchema, type IDBPDatabase, deleteDB, openDB } from "idb";
 import type { CloseInput } from "@/domain/dayClose";
 import type { Entry } from "@/domain/entry";
 import type { NoteHint } from "@/domain/expenseNotes";
+import type { FixedCostMonth } from "@/domain/fixedPaid";
 import type { MaterialHint } from "@/domain/materials";
 import type { RestockHint } from "@/domain/restock";
 import type { BusinessDate, Lang } from "@/lib/dates";
@@ -58,6 +59,10 @@ export type ShopSnapshot = {
   quickAmounts?: Paise[];
   /** Materials usually bought by now, for a nudge on Today. */
   restock?: RestockHint[];
+  /** The stall's UPI account balance at the start of that day; null until the owner sets it. */
+  upiStart?: Paise | null;
+  /** The month's fixed costs and what was paid towards each before that day (the phone adds that day's). */
+  fixedCostsMonth?: FixedCostMonth[];
 };
 
 /** A change waiting to reach the server. One row per entry: the latest version. */

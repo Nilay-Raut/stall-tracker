@@ -10,7 +10,15 @@ const entered: DayTotals = {
   upiSales: r(2480),
   expenses: r(2275),
   drawerExpenses: r(1375),
+  upiExpenses: 0,
+  pocketExpenses: r(900), // the gas, paid from the owner's pocket
   cashOut: r(500),
+  drawerCashOut: r(500),
+  upiCashOut: 0,
+  deposits: 0,
+  drawerFixedPaid: 0,
+  upiFixedPaid: 0,
+  pocketFixedPaid: 0,
   fixedCost: r(750),
   profit: r(2555),
   breakEven: r(3025),
@@ -51,5 +59,20 @@ describe("computeClose", () => {
     });
     expect(short.cashDifference).toBe(-r(50));
     expect(short.upiDifference).toBe(-r(80));
+  });
+
+  it("counts cash put in the bank as gone from the drawer, but not cash taken from UPI", () => {
+    const close = {
+      openingCash: r(1000),
+      countedCash: r(1475), // 2,275 − 800 put in the bank
+      upiTotal: r(2480),
+      waste: null,
+    };
+    const banked = computeClose({ ...entered, deposits: r(800) }, close);
+    expect(banked.cashSales).toBe(r(3150)); // the same sales as without the deposit
+
+    // ₹300 of the ₹500 taken out came from UPI: the drawer only lost 200 of it.
+    const fromUpi = { ...entered, drawerCashOut: r(200), upiCashOut: r(300) };
+    expect(computeClose(fromUpi, { ...close, countedCash: r(2575) }).cashSales).toBe(r(3150));
   });
 });

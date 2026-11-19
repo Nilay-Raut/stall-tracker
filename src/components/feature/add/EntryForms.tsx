@@ -26,7 +26,10 @@ import { Footer, PaymentChoice } from "./FormParts";
 import { OtherNote, mergeNoteHints } from "./OtherNote";
 import { VoiceButton } from "./VoiceButton";
 import { billTotal } from "@/domain/bill";
-import { parseSpoken } from "@/domain/spoken";
+import { noteKey } from "@/domain/expenseNotes";
+import { leftToPay, withPayments } from "@/domain/fixedPaid";
+import { pickSpoken } from "@/domain/spoken";
+import { AppLink } from "@/components/ui/AppLink";
 import { useEntryEditor } from "./useEntryEditor";
 
 export type FormProps = { existing: Entry | null; initialDate: BusinessDate; today: BusinessDate };
@@ -112,12 +115,19 @@ function QuickSale({
   const amount = Number(digits || 0) * 100;
   const usual = snapshot?.quickAmounts ?? [];
 
-  const heard = (text: string) => {
-    const spoken = parseSpoken(text, snapshot?.saleItems ?? []);
+  const heard = (guesses: string[]) => {
+    const found = pickSpoken(
+      guesses,
+      snapshot?.saleItems ?? [],
+      (s) => s.amount !== null || s.lines.length > 0,
+    );
+    if (!found) return null;
+    const { spoken } = found;
     // "2 chai 1 samosa" with no amount: the items' prices add up to it.
-    const total = spoken.amount ?? (spoken.lines.length > 0 ? billTotal(spoken.lines) : null);
-    if (total) setDigits(String(Math.min(Math.floor(total / 100), 9_999_999)));
+    const total = spoken.amount ?? billTotal(spoken.lines);
+    setDigits(String(Math.min(Math.floor(total / 100), 9_999_999)));
     if (spoken.payment) onPayment(spoken.payment);
+    return found.text;
   };
 
   return (
@@ -208,12 +218,15 @@ export function ExpenseForm({ existing, initialDate, today }: FormProps) {
     >
       <VoiceButton
         example={t("gas 900 from pocket")}
-        onHeard={(heardText) => {
-          const spoken = parseSpoken(heardText);
+        onHeard={(guesses) => {
+          const found = pickSpoken(guesses, [], (s) => s.amount !== null);
+          if (!found) return null;
+          const { spoken } = found;
           if (spoken.amount) setText(String(spoken.amount / 100));
           if (spoken.category) setCategory(spoken.category);
           if (spoken.paidFrom) setPaidFrom(spoken.paidFrom);
           if (spoken.note) setNote(spoken.note);
+          return found.text;
         }}
       />
       <MoneyInput
@@ -297,6 +310,10 @@ export function CashOutForm({ existing, initialDate, today }: FormProps) {
   const t = useT();
   const editor = useEntryEditor(existing, initialDate);
   const [text, setText] = useState(rupeesText(existing?.amount));
+  // Before this choice existed every cash out was from the drawer.
+  const [from, setFrom] = useState<"drawer" | "upi">(
+    existing?.paidFrom === "upi" ? "upi" : "drawer",
+  );
   const amount = parseRupeeInput(text);
   const tooBig = amount !== null && amount > MAX_ENTRY_AMOUNT;
 
@@ -309,7 +326,7 @@ export function CashOutForm({ existing, initialDate, today }: FormProps) {
       editing={!!existing}
     >
       <MoneyInput
-        label={t("Cash taken out of the drawer")}
+        label={t("Amount taken out")}
         name="amount"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -324,6 +341,16 @@ export function CashOutForm({ existing, initialDate, today }: FormProps) {
         }
         autoFocus={!existing}
       />
+      <ChoiceGroup
+        label={t("Taken from")}
+        choices={[
+          { value: "drawer", label: t(PAID_FROM_LABELS.drawer) },
+          { value: "upi", label: t("UPI account") },
+        ]}
+        value={from}
+        onChange={setFrom}
+        columns={2}
+      />
       <Footer
         editor={editor}
         canSave={!!amount && !tooBig}
@@ -332,6 +359,183 @@ export function CashOutForm({ existing, initialDate, today }: FormProps) {
           amount &&
           editor.save({
             type: "cash_out",
+            amount,
+            paymentMode: null,
+            category: null,
+            paidFrom: from,
+          })
+        }
+        editing={!!existing}
+      />
+    </AddShell>
+  );
+}
+
+// ---------- Fixed cost paid ----------
+
+/**
+ * Rent or a monthly salary actually paid. Each day's profit already carries its
+ * share, so this lowers the stall's money (or what the stall owes the owner),
+ * never profit. Picks from the fixed costs in Setup; the amount starts at what is
+ * still to pay this month.
+ */
+export function FixedPaidForm({ existing, initialDate, today }: FormProps) {
+  const t = useT();
+  const snapshot = useShopSnapshot();
+  const editor = useEntryEditor(existing, initialDate);
+  // The server's figures cover the month before today; today's payments come from
+  // this phone (exact even offline, or straight after another payment).
+  const todaysPayments = useDayView(today).entries.filter(
+    (e) => e.type === "fixed_paid" && e.id !== existing?.id,
+  );
+  const month =
+    snapshot?.date === today
+      ? withPayments(snapshot.fixedCostsMonth ?? [], todaysPayments)
+      : (snapshot?.fixedCostsMonth ?? []);
+  const [picked, setPicked] = useState<string | null>(existing?.note ?? null);
+  // null = not typed yet: show what is left to pay for the picked cost.
+  const [typed, setTyped] = useState<string | null>(existing ? rupeesText(existing.amount) : null);
+  const [paidFrom, setPaidFrom] = useState<PaidFrom>(existing?.paidFrom ?? "drawer");
+
+  const choices = month.map((row) => row.name);
+  if (existing?.note && !choices.some((name) => noteKey(name) === noteKey(existing.note ?? ""))) {
+    choices.push(existing.note); // renamed or removed since: still editable
+  }
+  const name = picked ?? month.find((row) => leftToPay(row) > 0)?.name ?? choices[0] ?? "";
+  const row = month.find((r) => noteKey(r.name) === noteKey(name));
+  const suggested = row ? leftToPay(row) || row.monthly : 0;
+  const text = typed ?? rupeesText(suggested);
+  const amount = parseRupeeInput(text);
+  const tooBig = amount !== null && amount > MAX_ENTRY_AMOUNT;
+  const paidFromChoices = PAID_FROM.map((value) => ({ value, label: t(PAID_FROM_LABELS[value]) }));
+
+  return (
+    <AddShell
+      type="fixed_paid"
+      today={today}
+      date={editor.date}
+      onDateChange={editor.setDate}
+      editing={!!existing}
+    >
+      {choices.length === 0 ? (
+        <p className="rounded-card glass-soft px-4 py-3 text-sm text-muted">
+          {t("No fixed costs yet. Add rent and monthly salary in Settings, Shop details.")}{" "}
+          <AppLink href="/setup" className="font-semibold text-ink underline">
+            {t("Shop details")}
+          </AppLink>
+        </p>
+      ) : (
+        <>
+          <ChoiceGroup
+            label={t("Which fixed cost")}
+            choices={choices.map((value) => ({ value, label: value }))}
+            value={name}
+            onChange={(value) => {
+              setPicked(value);
+              if (!existing) setTyped(null);
+            }}
+            columns={2}
+            tone="accent"
+          />
+          {row && row.monthly > 0 && (
+            <p className="-mt-1 text-xs text-muted">
+              {t("{monthly} a month · {paid} paid this month · {left} left", {
+                monthly: formatRupees(row.monthly),
+                paid: formatRupees(row.paid),
+                left: formatRupees(leftToPay(row)),
+              })}
+            </p>
+          )}
+          <MoneyInput
+            label={t("Amount paid")}
+            name="amount"
+            value={text}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="0"
+            hint={t(
+              "Already counted in each day's profit, so paying it does not lower profit again. It lowers the stall's money.",
+            )}
+            error={
+              text && amount === null
+                ? t("Enter an amount like 500")
+                : tooBig
+                  ? t("That is too much for one entry.")
+                  : undefined
+            }
+          />
+          <ChoiceGroup
+            label={t("Paid from")}
+            choices={paidFromChoices}
+            value={paidFrom}
+            onChange={setPaidFrom}
+          />
+        </>
+      )}
+      <Footer
+        editor={editor}
+        canSave={!!amount && !tooBig && !!name}
+        label={t("Save payment")}
+        onSave={() =>
+          amount &&
+          editor.save({
+            type: "fixed_paid",
+            amount,
+            paymentMode: null,
+            category: null,
+            paidFrom,
+            note: name,
+          })
+        }
+        editing={!!existing}
+      />
+    </AddShell>
+  );
+}
+
+// ---------- Cash to bank ----------
+
+/** Cash from the drawer put into the stall's UPI/bank account. Moves money; changes no total. */
+export function DepositForm({ existing, initialDate, today }: FormProps) {
+  const t = useT();
+  const editor = useEntryEditor(existing, initialDate);
+  const [text, setText] = useState(rupeesText(existing?.amount));
+  const amount = parseRupeeInput(text);
+  const tooBig = amount !== null && amount > MAX_ENTRY_AMOUNT;
+
+  return (
+    <AddShell
+      type="deposit"
+      today={today}
+      date={editor.date}
+      onDateChange={editor.setDate}
+      editing={!!existing}
+    >
+      <MoneyInput
+        label={t("Cash put in the bank")}
+        name="amount"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="0"
+        hint={t(
+          "Cash from the drawer paid into the stall's UPI/bank account. Not an expense: profit and stall money stay the same.",
+        )}
+        error={
+          text && amount === null
+            ? t("Enter an amount like 500")
+            : tooBig
+              ? t("That is too much for one entry.")
+              : undefined
+        }
+        autoFocus={!existing}
+      />
+      <Footer
+        editor={editor}
+        canSave={!!amount && !tooBig}
+        label={t("Save cash to bank")}
+        onSave={() =>
+          amount &&
+          editor.save({
+            type: "deposit",
             amount,
             paymentMode: null,
             category: null,

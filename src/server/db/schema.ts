@@ -96,6 +96,12 @@ export const shops = pgTable(
      * profit. Off: Today shows sales − expenses. Reports and Target always count them.
      */
     fixedCostInDailyProfit: boolean("fixed_cost_in_daily_profit").notNull().default(true),
+    /**
+     * The stall's UPI/bank account balance at the start of upiBalanceDate, set by
+     * the owner from their UPI app. Null until set. Later days follow from entries.
+     */
+    upiBalance: integer("upi_balance"),
+    upiBalanceDate: date("upi_balance_date"),
     /** Brand colour chosen in Settings, "#rrggbb" (lower case). Null = the app's green. */
     accentColor: text("accent_color"),
     createdAt,
@@ -152,7 +158,13 @@ export const fixedCosts = pgTable(
 
 // ---------- Daily entries ----------
 
-export const entryType = pgEnum("entry_type", ["sale", "expense", "cash_out"]);
+export const entryType = pgEnum("entry_type", [
+  "sale",
+  "expense",
+  "cash_out",
+  "deposit",
+  "fixed_paid",
+]);
 export const paymentMode = pgEnum("payment_mode", ["cash", "upi"]);
 export const expenseCategory = pgEnum("expense_category", [
   "raw_material",
@@ -178,7 +190,7 @@ export const entries = pgTable(
     paymentMode: paymentMode("payment_mode"),
     category: expenseCategory("category"),
     paidFrom: paidFrom("paid_from"),
-    /** Expenses only, optional: what an "Other" expense was for ("Ice", "Repairs"). */
+    /** What an "Other" expense was for ("Ice"), or which fixed cost was paid ("Rent"). */
     note: text("note"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     /** Phone time of the last change. The latest change wins. */

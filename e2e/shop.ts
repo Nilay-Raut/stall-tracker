@@ -57,7 +57,7 @@ export async function addExpense(page: Page, rupees: number, category: string, p
 
 export async function addCashOut(page: Page, rupees: number) {
   await page.getByRole("link", { name: "Cash taken out" }).click();
-  await page.getByLabel("Cash taken out of the drawer").fill(String(rupees));
+  await page.getByLabel("Amount taken out").fill(String(rupees));
   await page.getByRole("button", { name: "Save cash out" }).click();
   // Back on Today, or on the earlier day the entry belongs to.
   await expect(page).not.toHaveURL(/\/add\//);

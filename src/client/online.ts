@@ -29,7 +29,15 @@ export function useIsOffline(): boolean {
  * Screens the service worker should keep ready for offline use. Today ("/") is
  * included because the first visit happens before the service worker is in charge.
  */
-export const OFFLINE_SCREENS = ["/", "/add/sale", "/add/expense", "/add/cash-out", "/close/today"];
+export const OFFLINE_SCREENS = [
+  "/",
+  "/add/sale",
+  "/add/expense",
+  "/add/cash-out",
+  "/add/deposit",
+  "/add/fixed-cost",
+  "/close/today",
+];
 
 /** Asks the service worker to store the plain screens (call once logged in). */
 export function storeOfflineScreens(): void {

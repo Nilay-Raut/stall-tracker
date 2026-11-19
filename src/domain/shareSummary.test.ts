@@ -26,6 +26,20 @@ describe("daySummaryMessage", () => {
     );
   });
 
+  it("adds the stall's money when known", () => {
+    const text = daySummaryMessage(
+      {
+        ...day,
+        money: { cash: 115000, upi: 98500, upiIsBalance: false, total: 213500, pocket: 9000 },
+      },
+      english,
+    );
+    expect(text.split("\n").slice(-2)).toEqual([
+      "Stall money ₹2,135 (Cash ₹1,150 · UPI ₹985)",
+      "Paid from own pocket ₹90",
+    ]);
+  });
+
   it("says loss for a day below zero and skips fixed costs when there are none", () => {
     const text = daySummaryMessage({ ...day, fixedCost: 0, profit: -12000 }, english);
     expect(text).not.toContain("Fixed costs");

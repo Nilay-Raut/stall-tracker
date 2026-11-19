@@ -130,7 +130,6 @@ export const today: Phrases = {
   "Cash sales {amount}": { hi: "नकद बिक्री {amount}", mr: "रोख विक्री {amount}" },
   "Expenses {amount}": { hi: "खर्च {amount}", mr: "खर्च {amount}" },
   "Taken out {amount}": { hi: "निकाला {amount}", mr: "काढले {amount}" },
-  "Cash in drawer now": { hi: "अभी गल्ले में नकद", mr: "आता गल्ल्यात रोख" },
   "UPI today": { hi: "आज UPI", mr: "आज UPI" },
   "More cash went out than came in. Check the entries.": {
     hi: "जितना नकद आया उससे ज़्यादा निकला। एंट्री जाँचें।",
@@ -208,4 +207,48 @@ export const today: Phrases = {
   "Expense saved · {amount}": { hi: "खर्च सेव · {amount}", mr: "खर्च सेव्ह · {amount}" },
   "Cash out saved · {amount}": { hi: "निकाला नकद सेव · {amount}", mr: "काढलेली रोख सेव्ह · {amount}" },
   Undo: { hi: "वापस लें", mr: "रद्द करा" },
+
+  // Added: stall money and steadier voice entry
+  "Stall money now": { hi: "अभी स्टॉल का पैसा", mr: "आता स्टॉलचे पैसे" },
+  "Cash in drawer": { hi: "गल्ले में नकद", mr: "गल्ल्यात रोख" },
+  "UPI sales {amount}": { hi: "UPI बिक्री {amount}", mr: "UPI विक्री {amount}" },
+  "Paid from your own pocket today: {amount}. The stall owes you this.": {
+    hi: "आज अपनी जेब से दिया: {amount}। यह स्टॉल को आपको लौटाना है।",
+    mr: "आज स्वतःच्या खिशातून दिले: {amount}. हे स्टॉलने तुम्हाला परत द्यायचे आहे.",
+  },
+  "This is money, not profit: fixed costs and cash you take out count differently.": {
+    hi: "यह पैसा है, मुनाफ़ा नहीं: तय खर्च और निकाला नकद अलग गिने जाते हैं।",
+    mr: "हे पैसे आहेत, नफा नाही: ठरलेला खर्च आणि काढलेली रोख वेगळी मोजली जाते.",
+  },
+
+  // Added: UPI account balance and cash to bank
+  "To bank {amount}": { hi: "बैंक में {amount}", mr: "बँकेत {amount}" },
+  "Start {amount}": { hi: "शुरुआत {amount}", mr: "सुरुवात {amount}" },
+  "From drawer {amount}": { hi: "गल्ले से {amount}", mr: "गल्ल्यातून {amount}" },
+  "Add UPI balance": { hi: "UPI बैलेंस जोड़ें", mr: "UPI शिल्लक भरा" },
+  "Check UPI balance": { hi: "UPI बैलेंस जाँचें", mr: "UPI शिल्लक तपासा" },
+  "Needs internet. Try again when you are online.": {
+    hi: "इंटरनेट चाहिए। ऑनलाइन होने पर फिर कोशिश करें।",
+    mr: "इंटरनेट लागते. ऑनलाइन असताना पुन्हा प्रयत्न करा.",
+  },
+  "Balance your UPI or bank app shows now (₹)": {
+    hi: "आपका UPI या बैंक ऐप अभी जो बैलेंस दिखाता है (₹)",
+    mr: "तुमचे UPI किंवा बँक ॲप आता दाखवत असलेली शिल्लक (₹)",
+  },
+  "Use this balance": { hi: "यही बैलेंस रखें", mr: "हीच शिल्लक ठेवा" },
+  "{amount} more than expected. A UPI sale may be missing.": {
+    hi: "उम्मीद से {amount} ज़्यादा। शायद कोई UPI बिक्री छूट गई।",
+    mr: "अपेक्षेपेक्षा {amount} जास्त. एखादी UPI विक्री राहिली असेल.",
+  },
+  "{amount} less than expected. A UPI payment may be missing.": {
+    hi: "उम्मीद से {amount} कम। शायद कोई UPI भुगतान छूट गया।",
+    mr: "अपेक्षेपेक्षा {amount} कमी. एखादे UPI पेमेंट राहिले असेल.",
+  },
+  "Owner · from UPI": { hi: "मालिक · UPI से", mr: "मालक · UPI मधून" },
+  "Drawer to UPI account": { hi: "गल्ले से UPI खाते में", mr: "गल्ल्यातून UPI खात्यात" },
+
+  // Added: paying fixed costs
+  "Fixed costs paid {amount}": { hi: "तय खर्च दिया {amount}", mr: "ठरलेला खर्च दिला {amount}" },
+  "Fixed cost paid": { hi: "तय खर्च दिया", mr: "ठरलेला खर्च दिला" },
+  "Fixed cost": { hi: "तय खर्च", mr: "ठरलेला खर्च" },
 };

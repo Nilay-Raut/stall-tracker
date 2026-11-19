@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { parseSpoken } from "./spoken";
+import { parseSpoken, pickSpoken } from "./spoken";
+
+describe("pickSpoken", () => {
+  it("uses the first guess with an amount, not just the phone's top guess", () => {
+    const found = pickSpoken(["sixty UPI", "60 UPI", "60 you pee"], [], (s) => s.amount !== null);
+    expect(found?.text).toBe("60 UPI");
+    expect(found?.spoken).toMatchObject({ amount: 6000, payment: "upi" });
+  });
+
+  it("gives null when no guess makes sense", () => {
+    expect(pickSpoken(["hello", "yellow"], [], (s) => s.amount !== null)).toBeNull();
+  });
+});
 
 const items = [
   { id: "c", name: "Chai", price: 2000 },

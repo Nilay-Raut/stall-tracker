@@ -6,12 +6,21 @@ import { useLocalEntry, useToday } from "@/client/localStore";
 import { ButtonLink } from "@/components/ui/Button";
 import type { EntryType } from "@/domain/entry";
 import { useT } from "@/i18n/client";
-import { CashOutForm, ExpenseForm, type FormProps, SaleForm } from "./EntryForms";
+import {
+  CashOutForm,
+  DepositForm,
+  ExpenseForm,
+  FixedPaidForm,
+  type FormProps,
+  SaleForm,
+} from "./EntryForms";
 
 const FORMS: Record<EntryType, (props: FormProps) => React.ReactNode> = {
   sale: SaleForm,
   expense: ExpenseForm,
   cash_out: CashOutForm,
+  deposit: DepositForm,
+  fixed_paid: FixedPaidForm,
 };
 
 /**

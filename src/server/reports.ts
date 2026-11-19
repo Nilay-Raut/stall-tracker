@@ -13,7 +13,7 @@ import { fromMilli } from "@/domain/materials";
 import { formatMonthName } from "@/lib/calendar";
 import { type BusinessDate, type Lang, businessDate, daysInMonth, shiftDate } from "@/lib/dates";
 import { type MonthTotals, byMonth } from "@/domain/analysis";
-import type { ExpenseCategory, PaidFrom, PaymentMode } from "@/domain/entry";
+import type { EntryType, ExpenseCategory, PaidFrom, PaymentMode } from "@/domain/entry";
 import { shiftMonth } from "@/lib/calendar";
 import { type Range, datesBetween } from "@/lib/ranges";
 import { getDb } from "@/server/db/client";
@@ -297,7 +297,7 @@ export async function spendEntries(
 
 export type ExportEntry = SpendEntry & {
   time: Date;
-  type: "sale" | "expense" | "cash_out";
+  type: EntryType;
   paymentMode: PaymentMode | null;
   category: ExpenseCategory | null;
 };

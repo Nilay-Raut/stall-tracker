@@ -17,6 +17,11 @@ export type UndoOffer = {
   amount: Paise;
   /** The entry as it should be after Undo. */
   restore: Entry;
+  /**
+   * The screen the offer belongs to ("/" or "/day/2026-11-18"): the bar shows only
+   * there, so it never covers the buttons of another screen. Missing: anywhere.
+   */
+  where?: string;
   /** Time (ms) after which the offer goes away. */
   until: number;
 };

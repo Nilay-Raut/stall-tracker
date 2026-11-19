@@ -12,7 +12,7 @@ import { msg } from "@/i18n/translate";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/dates";
 import { ENTRY_PATHS, describeEntry } from "@/lib/labels";
-import { formatSignedRupees } from "@/lib/money";
+import { formatRupees, formatSignedRupees } from "@/lib/money";
 import { providerName } from "@/lib/paymentProviders";
 import { ENTRY_ICON_MASKS } from "./entryIcons";
 
@@ -26,6 +26,8 @@ const TONES: Record<EntryType, string> = {
   sale: "bg-accent-soft text-accent-fg",
   expense: "bg-surface text-ink",
   cash_out: "bg-warn-bg text-warn-ink",
+  deposit: "bg-surface text-ink",
+  fixed_paid: "bg-surface text-ink",
 };
 
 type Props = { title: string; entries: Entry[]; pending: Map<string, OutboxRow> };
@@ -69,11 +71,14 @@ function EntryRow({ entry, change }: { entry: Entry; change: OutboxRow | undefin
         type: entry.type,
         amount: entry.amount,
         restore: { ...entry, deleted: false },
+        where: window.location.pathname,
       }),
     );
   });
   const { title: label, note } = describeEntry(entry, t);
   const signed = entry.type === "sale" ? entry.amount : -entry.amount;
+  // Cash to bank only moves money between drawer and account: shown without a sign.
+  const shown = entry.type === "deposit" ? formatRupees(entry.amount) : formatSignedRupees(signed);
   const mask = `${ENTRY_ICON_MASKS[entry.type]} center / contain no-repeat`;
   return (
     <div className="border-t border-line">
@@ -108,7 +113,7 @@ function EntryRow({ entry, change }: { entry: Entry; change: OutboxRow | undefin
             entry.type === "sale" && "text-accent-fg",
           )}
         >
-          {formatSignedRupees(signed)}
+          {shown}
         </span>
       </AppLink>
       {change?.error && (

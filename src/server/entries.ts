@@ -218,7 +218,8 @@ export async function applyEntryChanges(
         paymentMode: change.paymentMode,
         category: change.category,
         paidFrom: change.paidFrom,
-        note: change.type === "expense" ? (change.note ?? null) : null,
+        note:
+          change.type === "expense" || change.type === "fixed_paid" ? (change.note ?? null) : null,
         occurredAt: new Date(change.occurredAt),
         clientUpdatedAt: incomingTime,
         deletedAt: change.deleted ? (current?.deletedAt ?? new Date()) : null,

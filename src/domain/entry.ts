@@ -2,7 +2,13 @@ import { z } from "zod";
 import type { BusinessDate } from "@/lib/dates";
 import type { Paise } from "@/lib/money";
 
-export const ENTRY_TYPES = ["sale", "expense", "cash_out"] as const;
+/**
+ * sale, expense, cash_out (owner takes money), deposit (cash from the drawer put
+ * into the stall's UPI/bank account: stall money and profit stay the same),
+ * fixed_paid (rent or monthly salary actually paid: lowers the stall's money but
+ * not profit, since every day's profit already carries its share).
+ */
+export const ENTRY_TYPES = ["sale", "expense", "cash_out", "deposit", "fixed_paid"] as const;
 export const PAYMENT_MODES = ["cash", "upi"] as const;
 export const EXPENSE_CATEGORIES = [
   "raw_material",
@@ -47,12 +53,16 @@ export type Entry = {
   paymentMode: PaymentMode | null;
   /** Expenses only. */
   category: ExpenseCategory | null;
-  /** Expenses only. */
+  /**
+   * Expenses and fixed costs paid: who paid (drawer, UPI, own pocket). Cash out:
+   * where it was taken from (drawer or UPI; none = drawer, as before this choice existed).
+   */
   paidFrom: PaidFrom | null;
   /** Expenses only, optional: what was bought, for supplier price tracking. */
   purchase: Purchase | null;
   /**
-   * Expenses only, optional: what an "Other" expense was for ("Ice", "Repairs").
+   * Expenses, optional: what an "Other" expense was for ("Ice", "Repairs").
+   * Fixed cost paid, required: which fixed cost ("Rent"), by its name in Setup.
    * Missing on entries saved before it existed: treat that as none.
    */
   note?: string | null;
@@ -152,7 +162,16 @@ export const entrySchema = z
     };
     need("paymentMode", entry.type === "sale");
     need("category", entry.type === "expense");
-    need("paidFrom", entry.type === "expense");
+    if (entry.type === "expense" || entry.type === "fixed_paid") need("paidFrom", true);
+    else if (entry.type === "cash_out") {
+      if (entry.paidFrom === "own_pocket") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["paidFrom"],
+          message: "cash out is from drawer or UPI",
+        });
+      }
+    } else need("paidFrom", false);
     if (entry.purchase !== null && entry.type !== "expense") {
       ctx.addIssue({
         code: "custom",
@@ -160,7 +179,8 @@ export const entrySchema = z
         message: "only expenses have a purchase",
       });
     }
-    if (entry.note !== null && entry.type !== "expense") {
+    if (entry.type === "fixed_paid") need("note", true);
+    else if (entry.note !== null && entry.type !== "expense") {
       ctx.addIssue({ code: "custom", path: ["note"], message: "only expenses have a note" });
     }
     if (entry.lines !== null) {

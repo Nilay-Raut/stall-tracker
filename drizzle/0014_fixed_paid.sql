@@ -1,0 +1,1 @@
+ALTER TYPE "public"."entry_type" ADD VALUE 'fixed_paid';

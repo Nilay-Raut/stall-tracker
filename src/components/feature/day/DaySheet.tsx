@@ -1,9 +1,8 @@
 "use client";
 
-import { CircleCheck, ChevronRight, Smartphone, Wallet } from "lucide-react";
+import { CircleCheck, ChevronRight } from "lucide-react";
 import { AppLink } from "@/components/ui/AppLink";
 import type { OutboxRow } from "@/client/localDb";
-import { useState } from "react";
 import { EntryList } from "@/components/feature/today/EntryList";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -14,8 +13,9 @@ import { useT } from "@/i18n/client";
 import { cn } from "@/lib/cn";
 import type { BusinessDate } from "@/lib/dates";
 import { ENTRY_PATHS } from "@/lib/labels";
-import { type Paise, formatRupees, parseRupeeInput } from "@/lib/money";
+import { type Paise, formatRupees } from "@/lib/money";
 import { RepeatSale } from "./RepeatSale";
+import { StallMoneyCard } from "./StallMoneyCard";
 import { type SalesMode, takesSaleEntries } from "@/domain/entry";
 
 type Props = {
@@ -33,8 +33,10 @@ type Props = {
   closedPending?: boolean;
   /** False when the owner keeps fixed costs out of the day's profit (Settings). */
   fixedInProfit?: boolean;
-  /** Cash in the drawer at the start of today: shows the cash expected in it now. */
+  /** Cash in the drawer at the start of today: shows the stall's money now. */
   openingCash?: Paise | null;
+  /** The UPI account balance at the start of today, if the owner has given it. */
+  upiStart?: Paise | null;
 };
 
 /**
@@ -53,6 +55,7 @@ export function DaySheet({
   closedPending = false,
   fixedInProfit = true,
   openingCash = null,
+  upiStart = null,
 }: Props) {
   const t = useT();
   const totals = computeDayTotals(entries, fixedInProfit ? fixedCost : 0);
@@ -64,7 +67,7 @@ export function DaySheet({
   const shownClosedProfit =
     closedProfit !== null && !fixedInProfit ? closedProfit + fixedCost : closedProfit;
   // Only shops that enter sales one by one know the cash sales before closing.
-  const showDrawer = isToday && !closed && takesSales && openingCash !== null;
+  const showMoney = isToday && !closed && takesSales && openingCash !== null;
   // Entries are newest first. Sales a payment app added by itself are not repeated.
   const lastSale =
     isToday && takesSales ? entries.find((e) => e.type === "sale" && !e.paidVia) : undefined;
@@ -145,13 +148,12 @@ export function DaySheet({
         </div>
       </Card>
 
-      {showDrawer && (
-        <DrawerCard
+      {showMoney && (
+        <StallMoneyCard
+          today={date}
           openingCash={openingCash}
-          cashSales={totals.cashSales}
-          drawerExpenses={totals.drawerExpenses}
-          cashOut={totals.cashOut}
-          upiSales={totals.upiSales}
+          totals={totals}
+          upiStart={upiStart}
         />
       )}
 
@@ -215,114 +217,6 @@ export function DaySheet({
         pending={pending}
       />
     </>
-  );
-}
-
-/**
- * The cash that should be in the drawer now: what it opened with, plus cash
- * sales, less expenses paid from it and cash taken out. UPI goes to the bank.
- */
-function DrawerCard({
-  openingCash,
-  cashSales,
-  drawerExpenses,
-  cashOut,
-  upiSales,
-}: {
-  openingCash: Paise;
-  cashSales: Paise;
-  drawerExpenses: Paise;
-  cashOut: Paise;
-  upiSales: Paise;
-}) {
-  const t = useT();
-  const [counting, setCounting] = useState(false);
-  const [counted, setCounted] = useState("");
-  const inDrawer = openingCash + cashSales - drawerExpenses - cashOut;
-  const countedPaise = counted.trim() ? parseRupeeInput(counted) : null;
-  const difference = countedPaise === null ? null : countedPaise - inDrawer;
-  const steps = [
-    t("Opening {amount}", { amount: formatRupees(openingCash) }),
-    cashSales > 0 && `+ ${t("Cash sales {amount}", { amount: formatRupees(cashSales) })}`,
-    drawerExpenses > 0 && `− ${t("Expenses {amount}", { amount: formatRupees(drawerExpenses) })}`,
-    cashOut > 0 && `− ${t("Taken out {amount}", { amount: formatRupees(cashOut) })}`,
-  ].filter(Boolean);
-
-  return (
-    <Card className="gap-2 py-3.5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-muted">
-            <Wallet size={16} aria-hidden />
-            {t("Cash in drawer now")}
-          </span>
-          <span
-            className={cn(
-              "font-display text-[30px] leading-tight font-bold",
-              inDrawer < 0 && "text-danger",
-            )}
-          >
-            {formatRupees(inDrawer)}
-          </span>
-        </div>
-        <div className="flex flex-col items-end gap-0.5 border-l border-line pl-3">
-          <span className="flex items-center gap-1.5 text-[13px] font-semibold text-muted">
-            <Smartphone size={16} aria-hidden />
-            {t("UPI today")}
-          </span>
-          <span className="font-display text-xl font-bold">{formatRupees(upiSales)}</span>
-        </div>
-      </div>
-      <p className="text-xs text-muted">{steps.join(" ")}</p>
-      {inDrawer < 0 && (
-        <p className="text-xs font-semibold text-danger">
-          {t("More cash went out than came in. Check the entries.")}
-        </p>
-      )}
-      {counting ? (
-        <div className="flex flex-col gap-1.5 border-t border-line pt-2.5">
-          <label htmlFor="drawer-count" className="text-xs font-semibold text-muted">
-            {t("Cash counted in the drawer now (₹)")}
-          </label>
-          <input
-            id="drawer-count"
-            inputMode="decimal"
-            autoFocus
-            value={counted}
-            onChange={(e) => setCounted(e.target.value)}
-            placeholder={String(Math.max(0, inDrawer) / 100)}
-            className="h-11 rounded-control border border-edge bg-field px-3 text-base"
-          />
-          {difference !== null && (
-            <p
-              role="status"
-              className={cn(
-                "text-sm font-bold",
-                difference === 0 ? "text-accent-fg" : difference < 0 ? "text-danger" : "text-ink",
-              )}
-            >
-              {difference === 0
-                ? t("It matches.")
-                : difference > 0
-                  ? t("{amount} more than expected. A sale may be missing.", {
-                      amount: formatRupees(difference),
-                    })
-                  : t("{amount} short. An expense or cash out may be missing.", {
-                      amount: formatRupees(-difference),
-                    })}
-            </p>
-          )}
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setCounting(true)}
-          className="min-h-10 self-start text-[13px] font-bold underline"
-        >
-          {t("Count the drawer now")}
-        </button>
-      )}
-    </Card>
   );
 }
 

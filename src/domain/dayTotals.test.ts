@@ -46,6 +46,8 @@ describe("computeDayTotals", () => {
     expect(totals.cashSales).toBe(r(3100));
     expect(totals.upiSales).toBe(r(2480));
     expect(totals.drawerExpenses).toBe(r(1375)); // own-pocket gas is not from the drawer
+    expect(totals.pocketExpenses).toBe(r(900));
+    expect(totals.upiExpenses).toBe(0);
     expect(totals.cashOut).toBe(r(500));
     expect(totals.entryCount).toBe(8);
   });

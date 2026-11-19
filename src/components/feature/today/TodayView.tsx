@@ -170,6 +170,7 @@ export function TodayView() {
         closedPending={serverProfit === null && localClose !== null}
         fixedInProfit={snapshot.fixedCostInDailyProfit ?? true}
         openingCash={snapshot.date === today ? (snapshot.close?.openingCash ?? null) : null}
+        upiStart={snapshot.date === today ? (snapshot.upiStart ?? null) : null}
       />
     </>
   );

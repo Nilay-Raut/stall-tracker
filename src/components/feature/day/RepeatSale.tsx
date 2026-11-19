@@ -47,6 +47,7 @@ export function RepeatSale({ last, date }: { last: Entry; date: BusinessDate }) 
         type: "sale",
         amount: copy.amount,
         restore: { ...copy, deleted: true },
+        where: window.location.pathname,
       });
     } finally {
       setBusy(false);

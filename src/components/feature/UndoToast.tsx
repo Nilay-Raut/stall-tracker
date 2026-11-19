@@ -1,15 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { dismissUndo, runUndo, useUndoOffer } from "@/client/undo";
 import { useT } from "@/i18n/client";
 import { PAYMENT_LABELS } from "@/lib/labels";
 import { formatRupees } from "@/lib/money";
 
-/** The few-second "Saved · Undo" bar above the tab bar, on every screen of the app. */
+/** The few-second "Saved · Undo" bar above the tab bar, on the screen the save went back to. */
 export function UndoToast() {
   const t = useT();
   const offer = useUndoOffer();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!offer) return;
@@ -17,7 +19,7 @@ export function UndoToast() {
     return () => clearTimeout(timer);
   }, [offer]);
 
-  if (!offer) return null;
+  if (!offer || (offer.where && offer.where !== pathname)) return null;
   const amount = formatRupees(offer.amount);
   const what =
     offer.kind === "deleted"
